@@ -13,8 +13,15 @@ and versions follow [Semantic Versioning](https://semver.org/).
 - `instant_on/overview` websocket command that feeds the card.
 - Sensors: site download and upload throughput, per-device client count, AP channel utilization, switch PoE power.
 
+### Changed
+- APs and switches are linked to their site device by device ID. The previous `via_device` method is deprecated and stops
+  working in Home Assistant 2027.8.
+
 ### Fixed
 - Wired clients behind the same switch port report that port's traffic, so throughput now counts each port once.
+- The card showed "Configuration error" in Home Assistant. The integration loads the card before Home Assistant installs its own
+  custom element registry, so the card now waits for the Home Assistant app to load before registering.
+- Map nodes and radio labels are wider, to fit Home Assistant's font.
 
 ## [0.1.0] - 2026-10-16
 

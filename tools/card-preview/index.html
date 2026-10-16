@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>instant-on-card preview</title>
+<style>
+  body { margin: 0; padding: 24px; background: #111318; color: #ccc; font-family: system-ui, sans-serif; }
+  #w { max-width: 1280px; margin: auto; }
+  .bar { max-width: 1280px; margin: 0 auto 12px; font-size: 13px; }
+  .bar label { margin-right: 14px; }
+</style>
+</head>
+<body>
+<div class="bar">
+  instant-on-card preview · data:
+  <label><input type="radio" name="src" value="sample-overview.json" checked> sample-overview.json</label>
+  <label><input type="radio" name="src" value="overview.json"> overview.json (your own, see README)</label>
+  · width: <input id="width" type="range" min="360" max="1280" value="1280">
+</div>
+<div id="w"></div>
+<!-- Stand-in for Home Assistant's <ha-card>; the card styles it itself. -->
+<script>customElements.define("ha-card", class extends HTMLElement {});</script>
+<!-- The card waits for <home-assistant> or <hui-view> to be defined before registering itself. -->
+<script>customElements.define("hui-view", class extends HTMLElement {});</script>
+<script type="module" src="../../custom_components/instant_on/frontend/instant-on-card.js"></script>
+<script type="module">
+  // Fake 24 h of history so the charts have something to draw.
+  const history = (ids, base) => Object.fromEntries(ids.map((id, i) => {
+    const now = Date.now() / 1000;
+    return [id, Array.from({ length: 289 }, (_, k) => {
+      const day = 0.5 - 0.5 * Math.cos((k / 288) * 2 * Math.PI - 0.9);
+      return { s: String((base[i] * (0.3 + day) + Math.random() * base[i] * 0.2).toFixed(2)), lu: now - 86400 + k * 300 };
+    })];
+  }));
+
+  async function show(src) {
+    const res = await fetch(src);
+    if (!res.ok) { document.getElementById("w").textContent = `Couldn't load ${src} (${res.status}).`; return; }
+    const overview = await res.json();
+    const site = overview.sites[0];
+    site.updated = site.updated || new Date(Date.now() - 12000).toISOString();
+    const e = site.entities;
+    const hist = history([e.clients, e.throughput_down, e.throughput_up, e.health_score], [45, 70, 10, 92]);
+    await customElements.whenDefined("instant-on-card");
+    const card = document.createElement("instant-on-card");
+    card.setConfig({});
+    card.hass = { callWS: async (msg) => (msg.type === "instant_on/overview" ? overview : hist) };
+    document.getElementById("w").replaceChildren(card);
+  }
+  document.querySelectorAll("input[name=src]").forEach((r) => r.addEventListener("change", () => show(r.value)));
+  document.getElementById("width").addEventListener("input", (ev) => (document.getElementById("w").style.maxWidth = ev.target.value + "px"));
+  show("sample-overview.json");
+</script>
+</body>
+</html>

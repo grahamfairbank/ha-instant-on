@@ -45,10 +45,26 @@ asyncio.run(main())
 
 (Importing `custom_components.instant_on.api` loads the package's `__init__.py`, which needs Home Assistant installed.)
 
+## Working on the dashboard card
+
+The card is one plain JavaScript file, `custom_components/instant_on/frontend/instant-on-card.js`. There's no framework or build step.
+
+- **Without Home Assistant:** run the [card preview](tools/card-preview/README.md) (`python3 -m http.server 8000`, then open
+  `/tools/card-preview/`). It loads the card file directly with sample data, and can also use a snapshot of your own network.
+- **In Home Assistant:** copy the file over the installed one and hard-refresh the browser (Ctrl+Shift+R). Home Assistant serves the file
+  from disk, so you don't need to restart for card-only changes. You do need to restart after changing any Python file.
+- **Data:** the card draws only what `overview.build_site()` returns (documented in [ARCHITECTURE.md](docs/ARCHITECTURE.md#dashboard-card)).
+  If the card needs a new field, add it there, not in the card.
+- **Register through `registerCard()`, never `customElements.define()` at load time.** Home Assistant loads the file before installing its own
+  element registry; see [the registry quirk](docs/ARCHITECTURE.md#how-its-delivered).
+- **Before opening a PR, check it at phone width** (the preview's width slider) and with Home Assistant's font. Text in Home Assistant runs slightly
+  wider than in the preview.
+- **Never commit real network data.** That means `tools/card-preview/overview.json` and any screenshot showing real device or client names.
+
 ## Code guidelines
 
 - Follow the Home Assistant [integration quality guidelines](https://developers.home-assistant.io/docs/core/integration-quality-scale/).
-- Keep `api.py` free of Home Assistant imports.
+- Keep `api.py` and `overview.py` free of Home Assistant imports.
 - Entities read from the coordinator only; they never call the API.
 - Access new API fields with `.get()`: the schema can change without warning.
 - Document new fields or endpoints in [docs/API.md](docs/API.md).

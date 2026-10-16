@@ -85,9 +85,59 @@ Lists come back as `{"elements": [...], "kind": ..., "totalCount": ..., ...}`.
 | `status`, `operationalState`, `health` | `up`, `active`, `good` |
 | `uptimeInSeconds`, `numberOfSecondsSinceLastCommunication` | |
 | `currentFirmwareVersion`, `deviceSoftwareVersion`, `isUpToDate` | |
-| `uplinkDeviceName`, `uplinkDeviceMacAddress` | Upstream switch |
-| `inputPowerSource`, `poePdClass`, `poePseStatus` | Power |
-| `radios[]` | APs: `band`, `channel`, `channelWidth`, `utilizationPercent` |
-| `ethernetPorts[]` | Per-port configuration and state |
+| `uplinkDeviceName`, `uplinkDeviceMacAddress`, `uplinkDeviceDeviceId` | Upstream device. For the root switch, this is the router, which usually isn't an Instant On device. |
+| `inputPowerSource`, `poePdClass` | How the device is powered (`poe`, `ac-dc`) and its PoE class |
+| `poePseStatus`, `poePseNominalPowerInWatts`, `poePseConsumedPowerInWatts` | Switches: PoE status, budget and current draw (e.g. 124 W budget, 26 W used) |
+| `radios[]` | APs, one per band (see below) |
+| `ethernetPorts[]` | Switches, and APs with Ethernet ports (see below) |
 | `wirelessNetworks[]` | SSIDs on the AP |
 | `ipAddress`, `subnetMask`, `defaultGateway`, `primaryDns` | Management IP |
+
+### Radio (`inventory[].radios[]`)
+
+| Field | Example | Notes |
+|---|---|---|
+| `id` | `aa:bb:cc:…` | Radio BSSID; matches `wirelessRadioId` on clients |
+| `band` | `5ghz` | `2.4ghz`, `5ghz`, `6ghz` |
+| `channel`, `channelWidth` | `36`, `80mhz` | |
+| `utilizationPercent` | `4` | Airtime use |
+| `wirelessClientsCount` | `18` | Clients on this radio |
+| `txPowerEirpInDbm`, `regulatoryMaxTxPowerEirpInDbm` | `26.5` | Transmit power and regulatory limit |
+
+### Switch port (`inventory[].ethernetPorts[]`)
+
+Status fields:
+
+| Field | Example | Notes |
+|---|---|---|
+| `portNumber`, `faceplatePortNumber` | `14` | Use the faceplate number for display |
+| `isLinkUp` | `true` | |
+| `speed`, `maxSpeed`, `duplex` | `mbps1000`, `full` | Negotiated speed, port's maximum and duplex |
+| `isUplink`, `isDedicatedUplink`, `isSfp` | | |
+| `directlyConnectedDeviceId`, `directlyConnectedDeviceName`, `directlyConnectedDeviceModel` | `Core Switch` | Set when another Instant On device is on the port. The card uses this to label map links with a port number and speed. |
+| `downstreamThroughputInBitsPerSecond`, `upstreamThroughputInBitsPerSecond` | `19312690` | Current port throughput; also in `portDataTraffic` |
+| `downstreamDataTransferredInBytes`, `upstreamDataTransferredInBytes` | | Counters; `portDataTraffic` adds 24 h totals |
+| `health`, `isLoopDetected`, `isLinkFlappingDetected` | `good` | |
+
+PoE fields:
+
+| Field | Example | Notes |
+|---|---|---|
+| `isPoeSupported` | `true` | |
+| `isProvidingPower` | `true` | |
+| `powerProvidedInMilliwatts`, `powerRequestedInMilliwatts` | `7300`, `15400` | |
+| `poePseStatus` | `deliveringPower`, `searching` | |
+| `supportedPoeType`, `negotiatedPoeType` | `poePlus`, `poe` | |
+| `supportedPoeClass`, `negotiatedPoeClass` | `802.3af Class 3` | |
+
+Configuration fields (`networkMapping`, `poePriority`, `usePoeSchedule`, `stormControlEnabled`, `effectiveConfiguration`, …) are
+present but unused.
+
+## Quirks
+
+- **Wired client throughput is per port, not per client.** A wired client's throughput fields (top-level and `dataTraffic`) repeat the
+  throughput of the switch port it's behind. On the test site, 7 clients behind one port each reported the same 23.2 Mb/s.
+  To total traffic, group wired clients by `connectedToPorts[0].deviceId` and `portNumber` (see `overview.talkers()`).
+- **Disconnected clients stay listed.** `clientSummary` includes clients with `status: "down"` for a while after they leave.
+- **IDs are MACs.** `id` is the MAC address for clients, devices and radios.
+- **No IPs for most wired clients.** `ipAddress` is `""`.

@@ -1,15 +1,21 @@
 # Architecture
 
-This document explains how the `instant_on` integration is put together, for contributors and anyone reviewing the code.
+This document explains how the `instant_on` integration and its dashboard card fit together, for contributors and anyone reviewing the code.
 
 ## Overview
 
 ```mermaid
 flowchart LR
+  subgraph Browser["Browser · Home Assistant frontend"]
+    CARD[instant-on-card.js<br/>custom:instant-on-card]
+  end
   subgraph HA["Home Assistant · custom_components/instant_on"]
+    INIT[__init__.py<br/>setup · serves the card]
     CF[config_flow.py<br/>setup · re-auth · options]
-    CO[coordinator.py<br/>DataUpdateCoordinator]
+    CO[coordinator.py<br/>TimestampDataUpdateCoordinator]
     API[api.py<br/>InstantOnClient]
+    OV[overview.py<br/>card snapshot]
+    WS[websocket.py<br/>instant_on/overview]
     S[sensor.py]
     B[binary_sensor.py]
     T[device_tracker.py]
@@ -17,12 +23,19 @@ flowchart LR
     CF --> API
     CO --> API
     CO --> S & B & T & D
+    WS --> CO
+    WS --> OV
+    S --> OV
   end
   subgraph Cloud["HPE Instant On cloud (unofficial)"]
     SET[portal.instant-on.hpe.com<br/>/settings.json]
     SSO[sso.arubainstanton.com<br/>validate · authorize · token]
     REST[portal.instant-on.hpe.com<br/>/api/sites/...]
   end
+  INIT -. "GET /instant_on/instant-on-card.js" .-> CARD
+  CARD -- "callWS instant_on/overview (30 s)" --> WS
+  CARD -- "callWS history/history_during_period (5 min)" --> REC[(Recorder)]
+  S --> REC
   API -->|1| SET
   API -->|2-4| SSO
   API -->|5 Bearer + x-ion-api-version: 7| REST
@@ -31,23 +44,28 @@ flowchart LR
 The integration follows the standard Home Assistant **hub + coordinator** pattern:
 
 - **One config entry per Instant On account.** The entry stores the email, password and selected site IDs.
-- **One `DataUpdateCoordinator` per entry.** All entities read from it, so each poll is a single batch of API calls, however many entities exist.
+- **One coordinator per entry.** All entities read from it, so each poll is a single batch of API calls, however many entities exist.
 - **Entities never call the API.** They only read from `coordinator.data`.
+- **The card never calls the API either.** It reads a snapshot of the coordinator data over Home Assistant's websocket, plus the
+  history Home Assistant has recorded for the integration's sensors.
 
 ## Files
 
 | File | Responsibility |
 |---|---|
-| `api.py` | Async `aiohttp` client: discovery, PKCE sign-in, token cache, authenticated GETs. Has no Home Assistant imports, so it can be tested on its own. |
+| `api.py` | Async `aiohttp` client: discovery, PKCE sign-in, token cache, authenticated GETs. No Home Assistant imports, so it can be tested on its own. |
 | `const.py` | Constants and small pure helpers (`client_mac`, `client_name`, `is_wireless`, `is_online`). |
-| `coordinator.py` | Polls sites, then clients and inventory for each site in parallel. Converts API errors into `ConfigEntryAuthFailed` or `UpdateFailed`. |
-| `__init__.py` | Sets up and unloads the entry. Creates a dedicated `ClientSession` (its own cookie jar) and reloads the entry when options change. |
+| `coordinator.py` | Polls sites, then clients and inventory for each site in parallel. Converts API errors into `ConfigEntryAuthFailed` or `UpdateFailed`. A `TimestampDataUpdateCoordinator`, so the card can show when data was last fetched. Also holds `site_device_ids`. |
+| `__init__.py` | `async_setup` registers the websocket command, serves the card file and adds it to every frontend page. `async_setup_entry` creates the client and coordinator, registers a device for each site, then sets up the platforms. |
 | `config_flow.py` | `user` step (credentials) → `sites` step (multi-select), `reauth_confirm`, and the options flow. |
 | `entity.py` | `InstantOnEntity` base class and `DeviceInfo` builders for sites and network devices. |
-| `sensor.py` | Six per-site sensors, defined with `SensorEntityDescription` and a `value_fn`. |
+| `overview.py` | Pure function `build_site()` that turns raw API data into the compact snapshot the card draws, and `talkers()` / `site_throughput()`, which count each switch port once. No Home Assistant imports. |
+| `websocket.py` | `instant_on/overview` command: builds a snapshot for every site of every loaded entry, adding the entity IDs the card needs for history. |
+| `sensor.py` | Site sensors (`SiteSensor`) and per-device sensors (`DeviceSensor`), defined with entity descriptions and `value_fn`s. |
 | `binary_sensor.py` | One connectivity sensor per inventory device. |
 | `device_tracker.py` | One `ScannerEntity` per client MAC. New clients are added as they appear. Created disabled by default. |
 | `diagnostics.py` | Dumps the coordinator data with credentials and personal fields redacted. |
+| `frontend/instant-on-card.js` | The dashboard card: one dependency-free web component, no build step. |
 
 ## Authentication
 
@@ -68,13 +86,11 @@ sequenceDiagram
   C->>P: GET /api/sites/ (Authorization: Bearer, x-ion-api-version: 7)
 ```
 
-Notes:
-
 - **Discovery first.** Hostnames and the OAuth client ID come from `settings.json` and are never hard-coded, so a portal migration
   (like the earlier move from `portal.arubainstanton.com`) keeps working.
 - **Token lifetime.** Tokens are cached until `expires_in - 60 s`. The `refresh_token` is not used yet; signing in again costs 3 requests about
-  every 30 minutes. Using the refresh token is a possible improvement.
-- **Concurrency.** `asyncio.Lock` around the token check means requests running in parallel trigger only one sign-in.
+  every 30 minutes.
+- **Concurrency.** An `asyncio.Lock` around the token check means requests running in parallel trigger only one sign-in.
 - **401 handling.** On a 401, the token is marked expired and the request is retried once. A second 401 raises `InstantOnAuthError`.
 - **Isolation.** The client has its own `ClientSession`, so SSO cookies never leak into Home Assistant's shared session.
 
@@ -91,23 +107,76 @@ for each site (sites in sequence; the two calls per site in parallel):
 
 `coordinator.data` is `dict[site_id, SiteData]`, where `SiteData.site` is the raw site record. The site record already includes
 `activeAlertsCount`, `activeAlertsCounters`, `latestActiveAlert`, `health` and `currentHealthScore`, so `/alerts` is not polled.
+The inventory includes everything the card needs: radios, switch ports, PoE and uplinks.
 
 ### Rules from live data
 
 | Rule | Why |
 |---|---|
-| Connected means `status == "up"` | `clientSummary` also lists recently-seen clients with `status: "down"` |
+| Connected means `status == "up"` | `clientSummary` also lists recently seen clients with `status: "down"` |
 | Wired or wireless comes from `clientType` | Falls back to `wirelessNetworkId` being set |
 | Clients and devices are keyed by MAC | `id` equals the MAC for both clients and inventory devices |
 | `ipAddress` may be `""` | Most wired clients report no IP |
+| **Count throughput once per switch port** | A wired client reports the throughput of the port it's behind. When several clients share a port (an unmanaged switch, a Sonos system), they all report the same number. `overview.talkers()` groups wired clients by `(deviceId, portNumber)` from `connectedToPorts`. Without this, site throughput read 262 Mb/s instead of about 100 Mb/s on the test site. |
+| Gateway name comes from the root switch | The router usually isn't an Instant On device; the root switch's `uplinkDeviceName` names it (for example a MikroTik router). |
 
-## Entity lifecycle
+## Entities
 
-- **Sensors and binary sensors** are created at setup from the first refresh. New network devices show up after a reload.
-- **Device trackers** listen to the coordinator and add a `ClientTracker` the first time a MAC is seen. A tracker stays registered when its client leaves
-  the list and reports `not_home`. It keeps the last known name and attributes.
-- **Device registry**: each site is a device. Each AP or switch is a device linked to its site (`via_device`), with a MAC connection
-  so it can merge with other integrations (DHCP, UniFi and so on) that know the same MAC.
+| Entity | Unique ID | Source |
+|---|---|---|
+| Site sensors: clients, wireless, wired, network devices, active alerts, health score | `{site_id}_{key}` | Site record and client list |
+| Site throughput: download, upload (Mb/s) | `{site_id}_throughput_down` / `_up` | `site_throughput()`, one entry per wireless client and per switch port |
+| Device clients | `dev_{mac}_clients` | Clients whose `deviceId` is this AP or switch |
+| AP channel utilization (%) | `dev_{mac}_channel_utilization` | Highest `radios[].utilizationPercent`; every radio's details are attributes |
+| Switch PoE power (W) | `dev_{mac}_poe_power` | `poePseConsumedPowerInWatts`; budget as an attribute |
+| Device connectivity | `dev_{mac}_online` | `status == "up"` |
+| Client tracker | `client_{mac}` | `clientSummary` entry |
+
+### Device registry
+
+- Each **site** is a device. `async_setup_entry` registers these *before* setting up the platforms and stores their registry IDs in
+  `coordinator.site_device_ids`.
+- Each **AP or switch** is a device linked to its site with `via_device_id`, plus a MAC connection so it can merge with other integrations
+  that know the same MAC. (`via_device` with an identifier tuple is deprecated and stops working in Home Assistant 2027.8.)
+- **Trackers** create no devices of their own. Home Assistant enables a tracker automatically when its MAC matches a device that's already registered.
+
+## Dashboard card
+
+### How it's delivered
+
+The card ships inside the integration, so users don't need HACS frontend resources or any manual setup:
+
+1. `async_setup` serves `frontend/instant-on-card.js` at `/instant_on/instant-on-card.js` (`StaticPathConfig`, cache headers on).
+2. It calls `frontend.add_extra_js_url()` with a `?v=<file mtime>` query, so every frontend page loads the card, and browsers fetch
+   a fresh copy after an update and restart.
+
+**Registry quirk.** Extra module URLs load before the Home Assistant app installs its own (scoped) custom element registry.
+A card that calls `customElements.define()` straight away lands in the browser's original registry. The element still upgrades, but Lovelace's
+`customElements.get()` can't see it and shows *Configuration error*. The card therefore polls (every 100 ms, for up to 30 s) until
+`home-assistant` or `hui-view` is defined, and only then registers itself.
+
+### Data flow
+
+| Call | When | Returns |
+|---|---|---|
+| `instant_on/overview` | On first render, then every 30 s | `{"sites": [snapshot, ...]}` (see below) |
+| `history/history_during_period` | On first render, then at most every 5 min | 24 h history for the site's clients, throughput and health-score sensors (minimal response, no attributes) |
+
+A snapshot (`overview.build_site()`) contains: `id`, `name`, `health`, `health_reason`, `score`, `alerts{total, major, minor, info, latest}`,
+`gateway`, `clients{total, wireless, wired, bands}`, `throughput{down, up}` (bit/s), `devices[]` (with `radios[]`, `ports[]`, `poe`, `uplink`,
+`clients`), `top_clients[]` (one row per wireless client or switch port, with `others` = clients sharing the port), `entities` (entity
+IDs for history) and `updated` (time of the last successful poll).
+
+### Rendering
+
+- One plain `HTMLElement` with a shadow root and no framework or build step. Each refresh re-renders the whole card; it's small enough.
+- Sections: `header`, `kpis`, `map`, `aps`, `switches`, `talkers`, selected and ordered by the `sections` option. When `aps` and `switches`
+  are next to each other, they share a row.
+- The **network map** is a tidy-tree layout in SVG: leaves take consecutive rows, and parents centre on their children. Links are Bézier curves with
+  an animated dash. Leaf devices get a client bubble; parent devices show their client count in the subtitle, so nothing overlaps a link.
+  On narrow screens, the map scrolls sideways instead of shrinking.
+- The layout responds to the card's own width (container queries), not the window's: four KPI tiles, then two, then one.
+- The palette is fixed (the "mission control" look) and doesn't follow the Home Assistant theme.
 
 ## Error handling
 
@@ -117,17 +186,20 @@ for each site (sites in sequence; the two calls per site in parallel):
 | Network error, 5xx, unexpected 4xx | `InstantOnError` / `OSError` / `TimeoutError` → `UpdateFailed` → entities become unavailable, retried next interval |
 | Fails during the first refresh | `ConfigEntryNotReady`: Home Assistant retries setup with backoff |
 | Client disappears from the list | Tracker → `not_home` (stays available) |
+| Card can't reach `instant_on/overview` | Before any data has loaded, the card shows the error message. After that it keeps showing the last data (the header's "updated … ago" shows its age). Either way it retries every 30 s. |
+| History unavailable | Charts show "collecting history…" and the rest of the card still renders |
 
 ## Security
 
 - The account's credentials are stored in the config entry, like most integrations. Hence the requirement for a dedicated, view-only account.
 - Diagnostics redact `username`, `password`, `macAddress`, `mac`, `ipAddress`, `serialNumber`, `hostName` and `name`.
 - The integration only makes GET requests to the REST API, so it can't change your network.
+- The websocket command requires an authenticated Home Assistant user and returns only data that user could already see through the entities.
 
 ## Possible future work
 
 - Use `refresh_token` instead of signing in again in full
-- Per-device sensors (uptime, PoE power, radio channel and utilization)
 - Pick up new network devices without a reload
+- A visual card editor (`getConfigElement`)
 - Write actions (block a client, toggle an SSID, power-cycle a PoE port), which need an admin account and request mapping
 - Unit tests with recorded fixtures (`pytest-homeassistant-custom-component`)

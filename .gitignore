@@ -10,3 +10,5 @@ __pycache__/
 creds*
 *_clientSummary.json
 *_inventory.json
+# card preview with real data
+tools/card-preview/overview.json

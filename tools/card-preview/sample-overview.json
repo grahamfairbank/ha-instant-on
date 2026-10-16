@@ -1,0 +1,572 @@
+{
+ "sites": [
+  {
+   "id": "demo",
+   "name": "Demo Home",
+   "health": "good",
+   "health_reason": "noProblemFound",
+   "score": 91,
+   "alerts": {
+    "total": 1,
+    "major": 0,
+    "minor": 1,
+    "info": 0,
+    "latest": "firmwareUpdateAvailable"
+   },
+   "gateway": "Router",
+   "clients": {
+    "total": 52,
+    "wireless": 32,
+    "wired": 20,
+    "bands": {
+     "2.4ghz": 12,
+     "5ghz": 20,
+     "6ghz": 0
+    }
+   },
+   "throughput": {
+    "down": 92300000,
+    "up": 12400000
+   },
+   "devices": [
+    {
+     "id": "02:00:00:00:00:01",
+     "name": "Core Switch",
+     "type": "switch",
+     "model": "JL684A",
+     "online": true,
+     "health": "good",
+     "uptime": 2592000,
+     "uplink": "02:00:00:00:00:99",
+     "uplink_name": "Router",
+     "firmware": "3.4.2.0",
+     "up_to_date": true,
+     "clients": 14,
+     "ports": [
+      {
+       "n": 1,
+       "up": true,
+       "speed": "mbps1000",
+       "uplink": false,
+       "sfp": false,
+       "poe_mw": 0,
+       "peer": "Office Switch",
+       "down": 10966024,
+       "up_bps": 1275414
+      },
+      {
+       "n": 2,
+       "up": true,
+       "speed": "mbps100",
+       "uplink": false,
+       "sfp": false,
+       "poe_mw": 7300,
+       "peer": "Living Room AP",
+       "down": 13348078,
+       "up_bps": 415055
+      },
+      {
+       "n": 3,
+       "up": true,
+       "speed": "mbps1000",
+       "uplink": false,
+       "sfp": false,
+       "poe_mw": 6100,
+       "peer": "Bedroom AP",
+       "down": 2530558,
+       "up_bps": 4505304
+      },
+      {
+       "n": 4,
+       "up": true,
+       "speed": "mbps1000",
+       "uplink": false,
+       "sfp": false,
+       "poe_mw": 0,
+       "peer": null,
+       "down": 3258480,
+       "up_bps": 3077620
+      },
+      {
+       "n": 5,
+       "up": false,
+       "speed": "mbps1000",
+       "uplink": false,
+       "sfp": false,
+       "poe_mw": 0,
+       "peer": null,
+       "down": 0,
+       "up_bps": 0
+      },
+      {
+       "n": 6,
+       "up": true,
+       "speed": "mbps1000",
+       "uplink": false,
+       "sfp": false,
+       "poe_mw": 0,
+       "peer": null,
+       "down": 19655120,
+       "up_bps": 496530
+      },
+      {
+       "n": 7,
+       "up": true,
+       "speed": "mbps100",
+       "uplink": false,
+       "sfp": false,
+       "poe_mw": 0,
+       "peer": null,
+       "down": 17126717,
+       "up_bps": 1811018
+      },
+      {
+       "n": 8,
+       "up": false,
+       "speed": "mbps1000",
+       "uplink": false,
+       "sfp": false,
+       "poe_mw": 0,
+       "peer": null,
+       "down": 0,
+       "up_bps": 0
+      },
+      {
+       "n": 9,
+       "up": true,
+       "speed": "mbps1000",
+       "uplink": false,
+       "sfp": false,
+       "poe_mw": 5200,
+       "peer": null,
+       "down": 1358145,
+       "up_bps": 730977
+      },
+      {
+       "n": 10,
+       "up": false,
+       "speed": "mbps1000",
+       "uplink": false,
+       "sfp": false,
+       "poe_mw": 0,
+       "peer": null,
+       "down": 0,
+       "up_bps": 0
+      },
+      {
+       "n": 11,
+       "up": false,
+       "speed": "mbps1000",
+       "uplink": false,
+       "sfp": false,
+       "poe_mw": 0,
+       "peer": null,
+       "down": 0,
+       "up_bps": 0
+      },
+      {
+       "n": 12,
+       "up": true,
+       "speed": "mbps1000",
+       "uplink": false,
+       "sfp": false,
+       "poe_mw": 0,
+       "peer": null,
+       "down": 14650734,
+       "up_bps": 3517882
+      },
+      {
+       "n": 13,
+       "up": false,
+       "speed": "mbps1000",
+       "uplink": false,
+       "sfp": false,
+       "poe_mw": 0,
+       "peer": null,
+       "down": 0,
+       "up_bps": 0
+      },
+      {
+       "n": 14,
+       "up": false,
+       "speed": "mbps1000",
+       "uplink": false,
+       "sfp": false,
+       "poe_mw": 0,
+       "peer": null,
+       "down": 0,
+       "up_bps": 0
+      },
+      {
+       "n": 15,
+       "up": true,
+       "speed": "mbps1000",
+       "uplink": false,
+       "sfp": false,
+       "poe_mw": 0,
+       "peer": null,
+       "down": 2443959,
+       "up_bps": 2028827
+      },
+      {
+       "n": 16,
+       "up": false,
+       "speed": "mbps1000",
+       "uplink": false,
+       "sfp": false,
+       "poe_mw": 0,
+       "peer": null,
+       "down": 0,
+       "up_bps": 0
+      },
+      {
+       "n": 17,
+       "up": false,
+       "speed": "mbps1000",
+       "uplink": false,
+       "sfp": false,
+       "poe_mw": 0,
+       "peer": null,
+       "down": 0,
+       "up_bps": 0
+      },
+      {
+       "n": 18,
+       "up": true,
+       "speed": "mbps1000",
+       "uplink": false,
+       "sfp": false,
+       "poe_mw": 0,
+       "peer": null,
+       "down": 3143823,
+       "up_bps": 4632519
+      },
+      {
+       "n": 19,
+       "up": false,
+       "speed": "mbps1000",
+       "uplink": false,
+       "sfp": false,
+       "poe_mw": 0,
+       "peer": null,
+       "down": 0,
+       "up_bps": 0
+      },
+      {
+       "n": 20,
+       "up": false,
+       "speed": "mbps1000",
+       "uplink": false,
+       "sfp": false,
+       "poe_mw": 0,
+       "peer": null,
+       "down": 0,
+       "up_bps": 0
+      },
+      {
+       "n": 21,
+       "up": false,
+       "speed": "mbps1000",
+       "uplink": false,
+       "sfp": false,
+       "poe_mw": 0,
+       "peer": null,
+       "down": 0,
+       "up_bps": 0
+      },
+      {
+       "n": 22,
+       "up": false,
+       "speed": "mbps1000",
+       "uplink": false,
+       "sfp": false,
+       "poe_mw": 0,
+       "peer": null,
+       "down": 0,
+       "up_bps": 0
+      },
+      {
+       "n": 23,
+       "up": false,
+       "speed": "mbps1000",
+       "uplink": false,
+       "sfp": false,
+       "poe_mw": 0,
+       "peer": null,
+       "down": 0,
+       "up_bps": 0
+      },
+      {
+       "n": 24,
+       "up": true,
+       "speed": "mbps1000",
+       "uplink": true,
+       "sfp": false,
+       "poe_mw": 0,
+       "peer": null,
+       "down": 14344500,
+       "up_bps": 505854
+      }
+     ],
+     "poe": {
+      "used": 19,
+      "budget": 195
+     }
+    },
+    {
+     "id": "02:00:00:00:00:02",
+     "name": "Office Switch",
+     "type": "switch",
+     "model": "JL681A",
+     "online": true,
+     "health": "good",
+     "uptime": 2592000,
+     "uplink": "02:00:00:00:00:01",
+     "uplink_name": "Core Switch",
+     "firmware": "3.4.2.0",
+     "up_to_date": false,
+     "clients": 6,
+     "ports": [
+      {
+       "n": 1,
+       "up": true,
+       "speed": "mbps1000",
+       "uplink": true,
+       "sfp": false,
+       "poe_mw": 0,
+       "peer": null,
+       "down": 27844553,
+       "up_bps": 4753369
+      },
+      {
+       "n": 2,
+       "up": false,
+       "speed": "mbps1000",
+       "uplink": false,
+       "sfp": false,
+       "poe_mw": 0,
+       "peer": null,
+       "down": 0,
+       "up_bps": 0
+      },
+      {
+       "n": 3,
+       "up": true,
+       "speed": "mbps1000",
+       "uplink": false,
+       "sfp": false,
+       "poe_mw": 0,
+       "peer": null,
+       "down": 4254104,
+       "up_bps": 1882664
+      },
+      {
+       "n": 4,
+       "up": true,
+       "speed": "mbps1000",
+       "uplink": false,
+       "sfp": false,
+       "poe_mw": 4200,
+       "peer": null,
+       "down": 21260294,
+       "up_bps": 4900532
+      },
+      {
+       "n": 5,
+       "up": true,
+       "speed": "mbps1000",
+       "uplink": false,
+       "sfp": false,
+       "poe_mw": 0,
+       "peer": null,
+       "down": 2175745,
+       "up_bps": 4851090
+      },
+      {
+       "n": 6,
+       "up": false,
+       "speed": "mbps1000",
+       "uplink": false,
+       "sfp": false,
+       "poe_mw": 0,
+       "peer": null,
+       "down": 0,
+       "up_bps": 0
+      },
+      {
+       "n": 7,
+       "up": false,
+       "speed": "mbps1000",
+       "uplink": false,
+       "sfp": false,
+       "poe_mw": 0,
+       "peer": null,
+       "down": 0,
+       "up_bps": 0
+      },
+      {
+       "n": 8,
+       "up": true,
+       "speed": "mbps1000",
+       "uplink": false,
+       "sfp": false,
+       "poe_mw": 0,
+       "peer": null,
+       "down": 19747509,
+       "up_bps": 3337597
+      },
+      {
+       "n": 9,
+       "up": false,
+       "speed": "mbps1000",
+       "uplink": false,
+       "sfp": false,
+       "poe_mw": 0,
+       "peer": null,
+       "down": 0,
+       "up_bps": 0
+      },
+      {
+       "n": 10,
+       "up": false,
+       "speed": "mbps1000",
+       "uplink": false,
+       "sfp": false,
+       "poe_mw": 0,
+       "peer": null,
+       "down": 0,
+       "up_bps": 0
+      }
+     ],
+     "poe": {
+      "used": 4,
+      "budget": 124
+     }
+    },
+    {
+     "id": "02:00:00:00:00:03",
+     "name": "Living Room AP",
+     "type": "accessPoint",
+     "model": "AP-25",
+     "online": true,
+     "health": "good",
+     "uptime": 1209600,
+     "uplink": "02:00:00:00:00:01",
+     "uplink_name": "Core Switch",
+     "firmware": "3.4.2.0",
+     "up_to_date": true,
+     "clients": 23,
+     "radios": [
+      {
+       "band": "5ghz",
+       "channel": 44,
+       "width": "80mhz",
+       "util": 18,
+       "clients": 15,
+       "power": 23.5
+      },
+      {
+       "band": "2.4ghz",
+       "channel": 6,
+       "width": "20mhz",
+       "util": 41,
+       "clients": 8,
+       "power": 18.0
+      }
+     ]
+    },
+    {
+     "id": "02:00:00:00:00:04",
+     "name": "Bedroom AP",
+     "type": "accessPoint",
+     "model": "AP-25",
+     "online": true,
+     "health": "good",
+     "uptime": 1209600,
+     "uplink": "02:00:00:00:00:01",
+     "uplink_name": "Core Switch",
+     "firmware": "3.4.2.0",
+     "up_to_date": true,
+     "clients": 9,
+     "radios": [
+      {
+       "band": "5ghz",
+       "channel": 149,
+       "width": "80mhz",
+       "util": 6,
+       "clients": 5,
+       "power": 23.5
+      },
+      {
+       "band": "2.4ghz",
+       "channel": 1,
+       "width": "20mhz",
+       "util": 72,
+       "clients": 4,
+       "power": 18.0
+      }
+     ]
+    }
+   ],
+   "top_clients": [
+    {
+     "name": "Media server",
+     "others": 0,
+     "type": "wired",
+     "via": "Core Switch",
+     "port": 6,
+     "band": null,
+     "down": 48200000,
+     "up": 2100000
+    },
+    {
+     "name": "Work laptop",
+     "others": 0,
+     "type": "wireless",
+     "via": "Living Room AP",
+     "port": null,
+     "band": "5ghz",
+     "down": 21400000,
+     "up": 6300000
+    },
+    {
+     "name": "Living room TV",
+     "others": 3,
+     "type": "wired",
+     "via": "Core Switch",
+     "port": 12,
+     "band": null,
+     "down": 14800000,
+     "up": 400000
+    },
+    {
+     "name": "Tablet",
+     "others": 0,
+     "type": "wireless",
+     "via": "Bedroom AP",
+     "port": null,
+     "band": "5ghz",
+     "down": 5100000,
+     "up": 300000
+    },
+    {
+     "name": "Doorbell camera",
+     "others": 0,
+     "type": "wireless",
+     "via": "Living Room AP",
+     "port": null,
+     "band": "2.4ghz",
+     "down": 400000,
+     "up": 2900000
+    }
+   ],
+   "entities": {
+    "clients": "sensor.demo_home_clients",
+    "throughput_down": "sensor.demo_home_throughput_down",
+    "throughput_up": "sensor.demo_home_throughput_up",
+    "health_score": "sensor.demo_home_health_score"
+   },
+   "updated": null
+  }
+ ]
+}

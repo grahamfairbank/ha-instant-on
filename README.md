@@ -8,6 +8,8 @@ An **unofficial, read-only** Home Assistant integration for **HPE Aruba Networki
 It polls the same cloud API the Instant On web portal uses, so you get presence detection for every client on your network, plus
 the online status of each AP and switch and the health of each site.
 
+![The instant-on-card dashboard, shown with made-up sample data](docs/images/instant-on-card.png)
+
 > [!WARNING]
 > This integration uses an **undocumented** API that HPE does not support. It can break without notice.
 > It is not affiliated with or endorsed by HPE.
@@ -91,7 +93,8 @@ Open **Configure** on the integration card to change:
 
 ### Enable the trackers you care about
 
-A site can have hundreds of clients, so **client trackers are created disabled**. To enable them, go to
+A site can have hundreds of clients, so **client trackers are created disabled**. The exception: Home Assistant enables a tracker on its own when its MAC
+matches a device another integration already knows (Sonos speakers, for example). To enable them, go to
 **Settings → Entities**, search for `device_tracker.` and filter by the integration, select the clients you want (phones, for example),
 then click **Enable selected**.
 
@@ -223,6 +226,10 @@ actions:
 | All entities are **unavailable** | Your internet connection or the Instant On cloud is down, or the API changed. Check the logs. |
 | A wired client has **no IP** | Expected: the API reports no IP for most wired clients. Presence uses the MAC address. |
 | Phone flips to `not_home` while at home | The phone's Wi-Fi sleeps or it uses a private (random) MAC. Turn off private MAC for your home network on the phone. |
+| The card shows **"Configuration error"** or "Custom element doesn't exist" | The integration isn't loaded (check **Settings → Devices & services**), or the browser has an old copy of the card. Refresh the page with Ctrl+Shift+R (on the companion app: **Settings → Companion app → Debugging → Reset frontend cache**). |
+| The card's charts say **"collecting history…"** | The sensors are new. The charts fill in as Home Assistant records data, which takes a few polls. They show up to 24 hours. |
+| A client in **Top talkers** says "+6 on port" | Several wired clients sit behind one switch port (for example behind an unmanaged switch or a Sonos system). The API reports the port's traffic for each of them, so the card shows them as one row. |
+| Some **client trackers are already enabled** | Home Assistant enables a tracker automatically when its MAC matches a device it already knows from another integration (Sonos, for example). Everything else starts disabled. |
 | A value looks wrong | Download diagnostics (integration card → three-dot menu → **Download diagnostics**) and open an issue with the file attached. |
 
 ### Debug logging
@@ -259,6 +266,7 @@ integrations. This is why the account should be dedicated, view-only and used fo
 
 - [Architecture](docs/ARCHITECTURE.md): components, data flow, sign-in sequence, error handling
 - [API notes](docs/API.md): endpoints and fields seen on a live site
+- [Card preview tool](tools/card-preview/README.md): work on the card in a browser, without Home Assistant
 - [Contributing](CONTRIBUTING.md) · [Security](SECURITY.md) · [Changelog](CHANGELOG.md)
 
 ## Credits and license
