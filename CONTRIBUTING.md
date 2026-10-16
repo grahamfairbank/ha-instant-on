@@ -14,7 +14,7 @@ contributions**.
 ## Development setup
 
 ```bash
-git clone https://github.com/YOUR_GITHUB_USER/ha-instant-on
+git clone https://github.com/grahamfairbank/ha-instant-on
 cd ha-instant-on
 python3 -m venv .venv && . .venv/bin/activate
 pip install homeassistant pytest-homeassistant-custom-component ruff

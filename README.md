@@ -1,7 +1,7 @@
 # HPE Instant On for Home Assistant
 
 [![HACS Custom](https://img.shields.io/badge/HACS-Custom-41BDF5.svg)](https://hacs.xyz/docs/faq/custom_repositories)
-[![Validate](https://github.com/YOUR_GITHUB_USER/ha-instant-on/actions/workflows/validate.yml/badge.svg)](https://github.com/YOUR_GITHUB_USER/ha-instant-on/actions/workflows/validate.yml)
+[![Validate](https://github.com/grahamfairbank/ha-instant-on/actions/workflows/validate.yml/badge.svg)](https://github.com/grahamfairbank/ha-instant-on/actions/workflows/validate.yml)
 ![Version](https://img.shields.io/badge/version-0.1.0-blue)
 
 An **unofficial, read-only** Home Assistant integration for **HPE Aruba Networking Instant On** access points and switches.
@@ -63,7 +63,7 @@ View-only access is enough for everything this integration does.
 ### HACS (recommended)
 
 1. In HACS, open the three-dot menu → **Custom repositories**.
-2. Add `https://github.com/YOUR_GITHUB_USER/ha-instant-on` with category **Integration**.
+2. Add `https://github.com/grahamfairbank/ha-instant-on` with category **Integration**.
 3. Search for **HPE Instant On**, then click **Download**.
 4. Restart Home Assistant.
 
