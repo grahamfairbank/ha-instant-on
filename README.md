@@ -2,7 +2,7 @@
 
 [![HACS Custom](https://img.shields.io/badge/HACS-Custom-41BDF5.svg)](https://hacs.xyz/docs/faq/custom_repositories)
 [![Validate](https://github.com/grahamfairbank/ha-instant-on/actions/workflows/validate.yml/badge.svg)](https://github.com/grahamfairbank/ha-instant-on/actions/workflows/validate.yml)
-![Version](https://img.shields.io/badge/version-0.1.0-blue)
+![Version](https://img.shields.io/badge/version-0.2.0-blue)
 
 An **unofficial, read-only** Home Assistant integration for **HPE Aruba Networking Instant On** access points and switches.
 It polls the same cloud API the Instant On web portal uses, so you get presence detection for every client on your network, plus
@@ -21,6 +21,7 @@ the online status of each AP and switch and the health of each site.
 - [Step 1: create a dedicated account](#step-1-create-a-dedicated-account)
 - [Step 2: install](#step-2-install)
 - [Step 3: configure](#step-3-configure)
+- [Dashboard card](#dashboard-card)
 - [Entities](#entities)
 - [Example automations](#example-automations)
 - [Troubleshooting](#troubleshooting)
@@ -35,6 +36,7 @@ the online status of each AP and switch and the health of each site.
 - **Online/offline sensor** for every AP and switch, with uptime, health, uplink and firmware-currency attributes
 - **Per-site sensors**: total, wireless and wired client counts, network device count, active alerts, health score
 - Set up entirely in the UI, with site selection, re-authentication and options (poll interval, client tracking on/off)
+- A built-in **mission-control dashboard card** with a live network map, health and client rings, 24 h throughput, PoE budget, AP radio use, switch port grids and top talkers
 - Downloadable **diagnostics** with personal data redacted
 - Supports multiple sites per account and multiple accounts
 
@@ -93,6 +95,28 @@ A site can have hundreds of clients, so **client trackers are created disabled**
 **Settings → Entities**, search for `device_tracker.` and filter by the integration, select the clients you want (phones, for example),
 then click **Enable selected**.
 
+## Dashboard card
+
+The integration ships its own card, so there's nothing extra to install. Once the integration is set up, add this to a dashboard
+(a **Panel** view or a full-width section looks best):
+
+```yaml
+type: custom:instant-on-card
+# site: Home             # optional: site name or id when the account has several sites
+# sections: [header, kpis, map, aps, switches, talkers]   # optional: choose and order sections
+```
+
+| Section | Shows |
+|---|---|
+| `header` | Site name, last update, overall status (offline devices or alerts) |
+| `kpis` | Site health ring, clients ring (wireless/wired, by band), throughput with 24 h history, PoE budget per switch |
+| `map` | Live network map, from the gateway through switches to APs, with link speeds and client counts. Swipe sideways on phones. |
+| `aps` | Each AP's radios: band, channel, width, airtime utilization, clients, transmit power |
+| `switches` | Port grids: link speed, uplinks, PoE (⚡). Hover a port for its peer, power and throughput. |
+| `talkers` | The busiest clients right now. Clients behind the same switch port are grouped, because the API reports port traffic for each of them. |
+
+The card uses a fixed dark "mission control" palette, whatever your Home Assistant theme. History sparklines fill in as Home Assistant records the sensors.
+
 ## Entities
 
 ### Per site (device: *Instant On &lt;site name&gt;*)
@@ -105,12 +129,17 @@ then click **Enable selected**.
 | `sensor.<site>_network_devices` | APs and switches in inventory | |
 | `sensor.<site>_active_alerts` | Active alert count | `latest_alert`, info/minor/major counts |
 | `sensor.<site>_health_score` | Site health score, 0 to 100 | `health`, `reason` |
+| `sensor.<site>_download_throughput` / `_upload_throughput` | Total client throughput (Mb/s), counting each switch port once | |
 
 ### Per AP or switch (one device each, linked to the site)
 
 | Entity | State | Attributes |
 |---|---|---|
 | `binary_sensor.<device name>` | `on` = connected (status `up`) | `deviceType`, `health`, `operationalState`, `uptimeInSeconds`, `numberOfSecondsSinceLastCommunication`, `uplinkDeviceName`, `isUpToDate`, `wiredClientsCount`, `inputPowerSource` |
+
+| `sensor.<device>_clients` | Clients connected to this AP or switch | |
+| `sensor.<ap>_channel_utilization` | Busiest radio's airtime use (%) | channel, width, utilization and clients per band |
+| `sensor.<switch>_poe_power` | PoE power drawn (W) | `budget_w` |
 
 The device registry entry includes the model, SKU, serial number, firmware version and MAC address.
 

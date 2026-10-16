@@ -5,6 +5,17 @@ and versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-10-16
+
+### Added
+- `custom:instant-on-card`: a mission-control dashboard card served by the integration (no separate install), with a network map,
+  health and client rings, 24 h throughput, PoE budget, AP radio panels, switch port grids and top talkers.
+- `instant_on/overview` websocket command that feeds the card.
+- Sensors: site download and upload throughput, per-device client count, AP channel utilization, switch PoE power.
+
+### Fixed
+- Wired clients behind the same switch port report that port's traffic, so throughput now counts each port once.
+
 ## [0.1.0] - 2026-10-16
 
 ### Added

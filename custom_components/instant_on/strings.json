@@ -62,6 +62,21 @@
       },
       "health_score": {
         "name": "Health score"
+      },
+      "throughput_down": {
+        "name": "Download throughput"
+      },
+      "throughput_up": {
+        "name": "Upload throughput"
+      },
+      "device_clients": {
+        "name": "Clients"
+      },
+      "channel_utilization": {
+        "name": "Channel utilization"
+      },
+      "poe_power": {
+        "name": "PoE power"
       }
     }
   }

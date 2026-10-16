@@ -10,7 +10,7 @@ from typing import Any
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConfigEntryAuthFailed
-from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
+from homeassistant.helpers.update_coordinator import TimestampDataUpdateCoordinator, UpdateFailed
 
 from .api import InstantOnAuthError, InstantOnClient, InstantOnError
 from .const import CONF_SCAN_INTERVAL, CONF_SITES, DEFAULT_SCAN_INTERVAL, DOMAIN, client_mac
@@ -25,7 +25,7 @@ class SiteData:
     inventory: list[dict[str, Any]] = field(default_factory=list)
 
 
-class InstantOnCoordinator(DataUpdateCoordinator[dict[str, SiteData]]):
+class InstantOnCoordinator(TimestampDataUpdateCoordinator[dict[str, SiteData]]):
     """Polls sites (incl. alert counts + health), clients and inventory."""
 
     config_entry: ConfigEntry
