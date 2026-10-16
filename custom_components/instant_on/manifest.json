@@ -1,0 +1,15 @@
+{
+  "domain": "instant_on",
+  "name": "HPE Instant On (unofficial)",
+  "codeowners": [
+    "@YOUR_GITHUB_USER"
+  ],
+  "config_flow": true,
+  "dependencies": [],
+  "documentation": "https://github.com/YOUR_GITHUB_USER/ha-instant-on",
+  "integration_type": "hub",
+  "iot_class": "cloud_polling",
+  "issue_tracker": "https://github.com/YOUR_GITHUB_USER/ha-instant-on/issues",
+  "requirements": [],
+  "version": "0.1.0"
+}
