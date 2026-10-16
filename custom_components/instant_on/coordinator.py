@@ -40,6 +40,7 @@ class InstantOnCoordinator(TimestampDataUpdateCoordinator[dict[str, SiteData]]):
             update_interval=timedelta(seconds=interval),
         )
         self.client = client
+        self.site_device_ids: dict[str, str] = {}  # site id -> device registry id
 
     async def _async_update_data(self) -> dict[str, SiteData]:
         wanted = set(self.config_entry.options.get(CONF_SITES) or self.config_entry.data.get(CONF_SITES, []))

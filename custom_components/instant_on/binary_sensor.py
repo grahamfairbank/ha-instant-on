@@ -38,7 +38,7 @@ class DeviceOnline(InstantOnEntity, BinarySensorEntity):
         super().__init__(coordinator, site_id)
         self._dev_id = dev_id
         self._attr_unique_id = f"dev_{dev_id}_online"
-        self._attr_device_info = inventory_device_info(site_id, self._dev)
+        self._attr_device_info = inventory_device_info(coordinator, site_id, self._dev)
 
     @property
     def _dev(self) -> dict[str, Any]:

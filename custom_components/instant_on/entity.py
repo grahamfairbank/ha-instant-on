@@ -25,7 +25,7 @@ def inventory_id(dev: dict[str, Any]) -> str | None:
     return dev.get("id") or dev.get("macAddress")  # id is the device MAC
 
 
-def inventory_device_info(site_id: str, dev: dict[str, Any]) -> DeviceInfo:
+def inventory_device_info(coordinator: InstantOnCoordinator, site_id: str, dev: dict[str, Any]) -> DeviceInfo:
     mac = dev.get("macAddress")
     return DeviceInfo(
         identifiers={(DOMAIN, f"dev_{inventory_id(dev)}")},
@@ -36,7 +36,7 @@ def inventory_device_info(site_id: str, dev: dict[str, Any]) -> DeviceInfo:
         model_id=dev.get("sku"),
         serial_number=dev.get("serialNumber"),
         sw_version=dev.get("currentFirmwareVersion") or dev.get("deviceSoftwareVersion"),
-        via_device=(DOMAIN, f"site_{site_id}"),
+        via_device_id=coordinator.site_device_ids.get(site_id),
     )
 
 

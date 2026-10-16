@@ -160,7 +160,7 @@ class DeviceSensor(InstantOnEntity, SensorEntity):
         self.entity_description = desc
         self._dev_id = dev_id
         self._attr_unique_id = f"dev_{dev_id}_{desc.key}"
-        self._attr_device_info = inventory_device_info(site_id, dev)
+        self._attr_device_info = inventory_device_info(coordinator, site_id, dev)
 
     @property
     def _dev(self) -> dict[str, Any] | None:

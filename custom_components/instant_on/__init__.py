@@ -8,7 +8,7 @@ from homeassistant.components.http import StaticPathConfig
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_PASSWORD, CONF_USERNAME, Platform
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers import config_validation as cv
+from homeassistant.helpers import config_validation as cv, device_registry as dr
 from homeassistant.helpers.aiohttp_client import async_create_clientsession
 from homeassistant.helpers.typing import ConfigType
 
@@ -16,6 +16,7 @@ from . import websocket
 from .api import InstantOnClient
 from .const import DOMAIN
 from .coordinator import InstantOnCoordinator
+from .entity import site_device_info
 
 CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
 CARD_URL = "/instant_on/instant-on-card.js"
@@ -42,6 +43,11 @@ async def async_setup_entry(hass: HomeAssistant, entry: InstantOnConfigEntry) ->
     client = InstantOnClient(session, entry.data[CONF_USERNAME], entry.data[CONF_PASSWORD])
     coordinator = InstantOnCoordinator(hass, entry, client)
     await coordinator.async_config_entry_first_refresh()
+    # Register site devices first so APs and switches can link to them by id.
+    dev_reg = dr.async_get(hass)
+    for site_id, site_data in coordinator.data.items():
+        device = dev_reg.async_get_or_create(config_entry_id=entry.entry_id, **site_device_info(site_data))
+        coordinator.site_device_ids[site_id] = device.id
     entry.runtime_data = coordinator
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     entry.async_on_unload(entry.add_update_listener(_async_reload))

@@ -86,7 +86,7 @@ svg.spark{width:100%;height:64px;display:block;overflow:visible}
 .map .node rect{fill:#0d1626;stroke:var(--line)}
 .map .node.off rect{stroke:var(--red)}
 .map .node .ic{color:var(--cyan)} .map .node.ap .ic{color:var(--violet)} .map .node.gw .ic{color:var(--amber)}
-.map text{fill:var(--text);font-size:12px} .map text.sub{fill:var(--dim);font-size:10.5px}
+.map text{fill:var(--text);font-size:12px} .map text.sub{fill:var(--dim);font-size:10px}
 .map .link{fill:none;stroke:#3ee0ff55;stroke-width:1.6}
 .map .flow{fill:none;stroke:var(--cyan);stroke-width:2;stroke-dasharray:4 14;animation:flow 1.6s linear infinite;filter:drop-shadow(0 0 3px #3ee0ff)}
 .map .link.down{stroke:var(--red);stroke-dasharray:4 4}
@@ -98,8 +98,8 @@ svg.spark{width:100%;height:64px;display:block;overflow:visible}
 .ap{display:grid;gap:9px;padding:10px 0;border-top:1px solid var(--line)} .ap:first-of-type{border-top:0;padding-top:0}
 .ap .t{display:flex;align-items:center;gap:9px}
 .ap .t .ic{color:var(--violet);display:flex}
-.radio{display:grid;grid-template-columns:62px 1fr 44px;gap:10px;align-items:center;font-size:12px}
-.radio .meta{font-size:10.5px;color:var(--dim)}
+.radio{display:grid;grid-template-columns:86px 1fr 40px;gap:10px;align-items:center;font-size:12px}
+.radio .meta{font-size:10.5px;color:var(--dim);white-space:nowrap}
 .sw{padding:10px 0;border-top:1px solid var(--line)} .sw:first-of-type{border-top:0;padding-top:0}
 .sw .t{display:flex;align-items:center;gap:9px;margin-bottom:9px} .sw .t .ic{color:var(--cyan);display:flex}
 .ports{display:grid;grid-template-columns:repeat(auto-fill,minmax(30px,1fr));gap:6px}
@@ -297,7 +297,7 @@ class InstantOnCard extends HTMLElement {
     }
     for (const k in kids) kids[k].sort((a, b) => (a.type === b.type ? (a.name || "").localeCompare(b.name || "") : a.type === "switch" ? -1 : 1));
     // Tidy-tree layout: leaves get consecutive rows, parents centre on their children.
-    const pos = {}, ROW = 66, COLW = 250, NODE_W = 196, NODE_H = 46;
+    const pos = {}, ROW = 66, COLW = 276, NODE_W = 222, NODE_H = 46;
     let row = 0, maxDepth = 0;
     const place = (id, depth) => {
       maxDepth = Math.max(maxDepth, depth);
@@ -327,7 +327,7 @@ class InstantOnCard extends HTMLElement {
       if (clients && parent) sub += ` · ${clients} clients`;
       let n = `<g class="node ${kind === "accessPoint" ? "ap" : kind === "gateway" ? "gw" : ""} ${online ? "" : "off"}" transform="translate(${x},${y})">
         <rect width="${NODE_W}" height="${NODE_H}" rx="11"/><g class="ic" transform="translate(11,12)">${icon(kind, 22)}</g>
-        <text x="42" y="20">${esc((name || "").length > 24 ? name.slice(0, 23) + "…" : name || "")}</text><text class="sub mono" x="42" y="35">${esc(sub)}</text>
+        <text x="42" y="20">${esc((name || "").length > 22 ? name.slice(0, 21) + "…" : name || "")}</text><text class="sub mono" x="42" y="35">${esc(sub)}</text>
         <circle cx="${NODE_W - 12}" cy="12" r="3.5" fill="${online ? "var(--green)" : "var(--red)"}" style="filter:drop-shadow(0 0 4px ${online ? "#3dffa2" : "#ff5c7a"})"/></g>`;
       if (clients && !parent) {
         const cx = x + NODE_W + 34, cy = y + NODE_H / 2, r = Math.min(20, 11 + Math.sqrt(clients) * 1.6);
@@ -383,9 +383,18 @@ class InstantOnCard extends HTMLElement {
   }
 }
 
-if (!customElements.get("instant-on-card")) {
-  customElements.define("instant-on-card", InstantOnCard);
+// The integration loads this file early (extra module URL), before the Home Assistant app swaps in
+// its own custom element registry. Defining straight away would register the card in the original
+// registry, where Lovelace can't see it, so wait until the app shell itself is defined.
+const registerCard = () => {
+  if (window.customElements.get("instant-on-card")) return;
+  window.customElements.define("instant-on-card", InstantOnCard);
   window.customCards = window.customCards || [];
-  window.customCards.push({ type: "instant-on-card", name: "Instant On", description: "Mission-control view of your HPE Instant On network", preview: true });
+  if (!window.customCards.some((c) => c.type === "instant-on-card"))
+    window.customCards.push({ type: "instant-on-card", name: "Instant On", description: "Mission-control view of your HPE Instant On network", preview: true });
   console.info(`%c INSTANT-ON-CARD %c ${VERSION} `, "background:#3ee0ff;color:#070b14;font-weight:700", "background:#0e1524;color:#3ee0ff");
-}
+};
+(function waitForApp(tries = 0) {
+  if (window.customElements.get("home-assistant") || window.customElements.get("hui-view") || tries > 300) registerCard();
+  else setTimeout(() => waitForApp(tries + 1), 100);
+})();
