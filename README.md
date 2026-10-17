@@ -266,7 +266,7 @@ sources in order and using the first that gives a real name:
 |---|---|---|---|
 | 1 | Instant On | "Work laptop" | The name you or Instant On gave it |
 | 2 | Home Assistant | "Kitchen speaker" | A name another integration (Sonos, Cast…) gave a device with the same MAC |
-| 3 | mDNS | "Kitchen", "HP OfficeJet Pro 9010" | From Home Assistant's zeroconf cache. Matched by IP, or by the MAC that many devices put in their hostname (`Sonos-48A6B8…`, `HPA1B2C3`). |
+| 3 | mDNS | "Kitchen", "HP OfficeJet Pro 9010" | From Home Assistant's zeroconf cache. Matched by IP, or by the MAC that many devices put in their hostname (`Sonos-0011AA…`, `HPA1B2C3`). |
 | 4 | DHCP | "media-server" | The hostname from Instant On or Home Assistant's DHCP watcher |
 | 5 | Reverse DNS | "nas.home.lan" | Only if your router publishes names in DNS |
 | 6 | NetBIOS | "DESKTOP-4F2K" | Windows and Samba machines |
