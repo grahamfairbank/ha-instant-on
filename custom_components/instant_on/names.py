@@ -71,10 +71,10 @@ def is_random_mac(mac: str) -> bool:
 
 
 def kind_for(vendor: str | None, services: list[str] | None = None) -> str | None:
-    for svc in services or []:
-        for key, kind in MDNS_KIND:
-            if svc.startswith(key):
-                return kind
+    # MDNS_KIND is in priority order: a Sonos also advertises AirPlay, but it's a speaker.
+    for key, kind in MDNS_KIND:
+        if any(svc.startswith(key) for svc in services or []):
+            return kind
     v = (vendor or "").lower()
     for kind, words in KINDS:
         if any(w in v for w in words):
@@ -423,7 +423,11 @@ class ClientNamer:
     async def _ha_device_names(self) -> dict[str, str]:
         """Names other integrations gave devices with a MAC connection (ignores bare-MAC names and our own)."""
         out = {}
-        for dev in dr.async_get(self.hass).devices.values():
+        for dev in dr.async_get(self.hass).devices:  # iterating yields entries
+            if isinstance(dev, str):  # older Home Assistant: iterating gives ids
+                dev = dr.async_get(self.hass).async_get(dev)
+            if dev is None:
+                continue
             if any(domain == DOMAIN for domain, _ in dev.identifiers):
                 continue
             name = dev.name_by_user or dev.name

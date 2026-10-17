@@ -16,6 +16,7 @@ and versions follow [Semantic Versioning](https://semver.org/).
 - Device tracker attributes: `vendor`, `device_type`, `name_source`, discovered hostnames and `ip_discovered`.
 - Options: **Look up names for unnamed clients** (on), **Scan the local network to find wired clients' IP addresses** (off).
 - Diagnostics: counts of where client names came from.
+- Clients that share a name (for example several Sonos speakers in one room) get the end of their MAC added.
 
 ## [0.3.1] - 2026-10-17
 

@@ -120,6 +120,17 @@ def _client_row(c: dict, label) -> dict[str, Any]:
     }
 
 
+def _dedupe(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Several devices can share a name (e.g. Sonos speakers in one room): add the MAC's last 3 bytes."""
+    counts: dict[str, int] = {}
+    for r in rows:
+        counts[r["name"]] = counts.get(r["name"], 0) + 1
+    for r in rows:
+        if counts[r["name"]] > 1 and r.get("mac") and r["mac"][-8:] not in r["name"]:
+            r["name"] = f'{r["name"]} · {r["mac"][-8:]}'
+    return rows
+
+
 def site_throughput(clients: dict[str, dict]) -> tuple[int, int]:
     t = talkers(clients)
     return sum(x["down"] for x in t), sum(x["up"] for x in t)
@@ -167,7 +178,7 @@ def build_site(site: dict, clients: dict[str, dict], inventory: list[dict], labe
         },
         "throughput": {"down": down, "up": up},
         "devices": [_device(d, by_dev) for d in inventory],
-        "client_list": [_client_row(c, label) for c in sorted(clients.values(), key=lambda c: (not is_online(c), _name(c, label).lower()))],
+        "client_list": _dedupe([_client_row(c, label) for c in sorted(clients.values(), key=lambda c: (not is_online(c), _name(c, label).lower()))]),
         "top_clients": [
             {
                 "name": t["names"][0],
