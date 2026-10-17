@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>instant-on-panel preview</title>
+<style>
+  /* Stand-ins for the Home Assistant theme variables the panel uses. */
+  html { --primary-background-color: #111318; --app-header-background-color: #101e24; --app-header-text-color: #e1e1e1; }
+  body { margin: 0; }
+</style>
+</head>
+<body>
+<script>
+  // Stand-ins for Home Assistant elements the panel and card expect.
+  customElements.define("ha-card", class extends HTMLElement {});
+  customElements.define("ha-menu-button", class extends HTMLElement {
+    connectedCallback() { this.innerHTML = '<svg viewBox="0 0 24 24" width="24" height="24" style="margin:12px;display:block"><path fill="currentColor" d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>'; }
+  });
+  customElements.define("hui-view", class extends HTMLElement {});
+</script>
+<script type="module" src="../../custom_components/instant_on/frontend/instant-on-card.js"></script>
+<script type="module">
+  const overview = await (await fetch("sample-overview.json")).json();
+  overview.sites[0].updated = new Date(Date.now() - 12000).toISOString();
+  await customElements.whenDefined("instant-on-panel");
+  const panel = document.createElement("instant-on-panel");
+  panel.panel = { title: "Network", config: {} };
+  panel.narrow = innerWidth < 870;
+  panel.hass = { callWS: async (msg) => (msg.type === "instant_on/overview" ? overview : {}) };
+  document.body.appendChild(panel);
+</script>
+</body>
+</html>

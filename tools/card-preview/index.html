@@ -42,10 +42,22 @@
     site.updated = site.updated || new Date(Date.now() - 12000).toISOString();
     const e = site.entities;
     const hist = history([e.clients, e.throughput_down, e.throughput_up, e.health_score], [45, 70, 10, 92]);
+    const net = overview.internet;
+    if (net) {
+      const now = Date.now() / 1000, ne = net.entities;
+      net.updated = net.updated || new Date(Date.now() - 8000).toISOString();
+      net.speed.at = net.speed.at || new Date(Date.now() - 2 * 3600e3).toISOString();
+      Object.assign(hist, history([ne.latency, ne.packet_loss], [14, 0]));
+      // A week of status with a short outage and a degraded spell, and a speed test every 6 h.
+      hist[ne.status] = [{ s: "healthy", lu: now - 7 * 86400 }, { s: "degraded", lu: now - 3 * 86400 }, { s: "healthy", lu: now - 3 * 86400 + 5400 },
+                         { s: "down", lu: now - 30 * 3600 }, { s: "healthy", lu: now - 30 * 3600 + 900 }];
+      hist[ne.download] = Array.from({ length: 28 }, (_, k) => ({ s: String(88 + Math.random() * 6), lu: now - (28 - k) * 6 * 3600 }));
+      hist[ne.upload] = Array.from({ length: 28 }, (_, k) => ({ s: String(38 + Math.random() * 5), lu: now - (28 - k) * 6 * 3600 + 20 }));
+    }
     await customElements.whenDefined("instant-on-card");
     const card = document.createElement("instant-on-card");
     card.setConfig({});
-    card.hass = { callWS: async (msg) => (msg.type === "instant_on/overview" ? overview : hist) };
+    card.hass = { callWS: async (msg) => (msg.type === "instant_on/overview" ? overview : hist), callService: async () => {} };
     document.getElementById("w").replaceChildren(card);
   }
   document.querySelectorAll("input[name=src]").forEach((r) => r.addEventListener("change", () => show(r.value)));

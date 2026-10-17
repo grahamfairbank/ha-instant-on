@@ -56,7 +56,7 @@ The integration follows the standard Home Assistant **hub + coordinator** patter
 | `api.py` | Async `aiohttp` client: discovery, PKCE sign-in, token cache, authenticated GETs. No Home Assistant imports, so it can be tested on its own. |
 | `const.py` | Constants and small pure helpers (`client_mac`, `client_name`, `is_wireless`, `is_online`). |
 | `coordinator.py` | Polls sites, then clients and inventory for each site in parallel. Converts API errors into `ConfigEntryAuthFailed` or `UpdateFailed`. A `TimestampDataUpdateCoordinator`, so the card can show when data was last fetched. Also holds `site_device_ids`. |
-| `__init__.py` | `async_setup` registers the websocket command, serves the card file and adds it to every frontend page. `async_setup_entry` creates the client and coordinator, registers a device for each site, then sets up the platforms. |
+| `__init__.py` | `async_setup` registers the websocket command, serves the card file and adds it to every frontend page. `async_setup_entry` creates the client and coordinator, registers a device for each site, sets up the platforms, then adds or removes the Network sidebar panel. |
 | `config_flow.py` | `user` step (credentials) → `sites` step (multi-select), `reauth_confirm`, and the options flow. |
 | `entity.py` | `InstantOnEntity` base class and `DeviceInfo` builders for sites and network devices. |
 | `overview.py` | Pure function `build_site()` that turns raw API data into the compact snapshot the card draws, and `talkers()` / `site_throughput()`, which count each switch port once. No Home Assistant imports. |
@@ -64,8 +64,10 @@ The integration follows the standard Home Assistant **hub + coordinator** patter
 | `sensor.py` | Site sensors (`SiteSensor`) and per-device sensors (`DeviceSensor`), defined with entity descriptions and `value_fn`s. |
 | `binary_sensor.py` | One connectivity sensor per inventory device. |
 | `device_tracker.py` | One `ScannerEntity` per client MAC. New clients are added as they appear. Created disabled by default. |
+| `internet.py` | `InternetCoordinator`: internet health probes every 30 s, the speed test and its schedule, and `host_link()` (the HA host's own NIC). |
+| `button.py` | **Run speed test** button. |
 | `diagnostics.py` | Dumps the coordinator data with credentials and personal fields redacted. |
-| `frontend/instant-on-card.js` | The dashboard card: one dependency-free web component, no build step. |
+| `frontend/instant-on-card.js` | The dashboard card (`instant-on-card`) and the sidebar panel (`instant-on-panel`): dependency-free web components, no build step. |
 
 ## Authentication
 
@@ -120,6 +122,35 @@ The inventory includes everything the card needs: radios, switch ports, PoE and 
 | **Count throughput once per switch port** | A wired client reports the throughput of the port it's behind. When several clients share a port (an unmanaged switch, a Sonos system), they all report the same number. `overview.talkers()` groups wired clients by `(deviceId, portNumber)` from `connectedToPorts`. Without this, site throughput read 262 Mb/s instead of about 100 Mb/s on the test site. |
 | Gateway name comes from the root switch | The router usually isn't an Instant On device; the root switch's `uplinkDeviceName` names it (for example a MikroTik router). |
 
+## Internet health
+
+A second coordinator, `InternetCoordinator` (`internet.py`), runs when **Monitor internet health** is on. It's stored on
+`coordinator.internet` and doesn't depend on Instant On.
+
+Every 30 s, in parallel:
+
+| Probe | Method | Notes |
+|---|---|---|
+| Latency, jitter, loss | 5 × TCP connect to `1.1.1.1:443` and `8.8.8.8:443` (2 s timeout each) | Home Assistant usually has no raw-socket permission for ICMP. Latency and jitter use the faster target; loss uses the worse one. |
+| DNS | Raw UDP `A` query for `www.google.com` to the first `nameserver` in `/etc/resolv.conf`, and to `1.1.1.1` | Run in the executor (blocking sockets) |
+| HTTPS | `GET https://www.google.com/generate_204` with `Connection: close` | Includes TCP and TLS setup each time |
+| Host link | `/proc/net/route` (default route interface), then `/sys/class/net/<if>/speed`, `/wireless`, `/device/driver` | On HA OS the core container shares the host's network namespace, so this is the real NIC. Drivers `virtio_net`, `vmxnet3`, `hv_netvsc` and the like mean a VM. |
+| Trace | `https://1.1.1.1/cdn-cgi/trace` | Every 10 min while up: public IP and Cloudflare location |
+
+**Status:** `down` when both TCP targets and HTTPS fail; `degraded` at 10% or more loss, over 80 ms latency, or HTTPS failing; otherwise `healthy`.
+`outage_since` is set at the first `down` sample.
+
+**Speed test** (`async_run_speedtest`): a `bytes=0` request for latency, then 4 parallel downloads of `__down?bytes=` (25 MB total), then 4 parallel
+uploads to `__up` (8 MB total), all on the coordinator's own session. A lock stops overlapping runs, and a 5-minute cooldown applies to scheduled
+runs (the button bypasses it). It runs 2 minutes after setup, then every N hours (`async_track_time_interval`), or never when N = 0. The
+result is marked `capped` when the faster direction reaches 85% or more of the host's link speed. Download and upload sensors are
+`RestoreSensor`s, so the last result survives restarts.
+
+**In the card:** the `instant_on/overview` payload has an `internet` object (the latest probe data, `link`, `speed`, `speed_running` and
+`entities`). The card reads 24 h of latency and loss history and 7 days of status, download and upload history from the recorder. Uptime is the
+share of recorded time not `down`; the strip shows the worst state in each hour. **Run now** presses the button entity, then refreshes after
+15, 35 and 60 s.
+
 ## Entities
 
 | Entity | Unique ID | Source |
@@ -131,6 +162,7 @@ The inventory includes everything the card needs: radios, switch ports, PoE and 
 | Switch PoE power (W) | `dev_{mac}_poe_power` | `poePseConsumedPowerInWatts`; budget as an attribute |
 | Device connectivity | `dev_{mac}_online` | `status == "up"` |
 | Client tracker | `client_{mac}` | `clientSummary` entry |
+| Internet sensors, connectivity, speed test button | `internet_{entry_id}_{key}` | `InternetCoordinator`; all on one *Internet* service device |
 
 ### Device registry
 
@@ -150,10 +182,16 @@ The card ships inside the integration, so users don't need HACS frontend resourc
 2. It calls `frontend.add_extra_js_url()` with a `?v=<file mtime>` query, so every frontend page loads the card, and browsers fetch
    a fresh copy after an update and restart.
 
+3. If any loaded entry has **Show the Network panel in the sidebar** on (the default), `panel_custom.async_register_panel()` adds a
+   **Network** sidebar panel at `/instant-on`. The panel is the `instant-on-panel` element from the same file: a Home Assistant-style
+   top bar (with the sidebar menu button on phones) above a full-width `instant-on-card`. Panels are global, not per entry, so the panel is
+   registered once, and removed (`frontend.async_remove_panel`) when the last entry that wants it unloads or turns the option off.
+   Changing the option reloads the entry, which re-runs this check.
+
 **Registry quirk.** Extra module URLs load before the Home Assistant app installs its own (scoped) custom element registry.
 A card that calls `customElements.define()` straight away lands in the browser's original registry. The element still upgrades, but Lovelace's
-`customElements.get()` can't see it and shows *Configuration error*. The card therefore polls (every 100 ms, for up to 30 s) until
-`home-assistant` or `hui-view` is defined, and only then registers itself.
+`customElements.get()` can't see it and shows *Configuration error*. The file therefore polls (every 100 ms, for up to 30 s) until
+`home-assistant` or `hui-view` is defined, and only then registers both elements.
 
 ### Data flow
 

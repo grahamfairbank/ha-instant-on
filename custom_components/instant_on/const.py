@@ -7,6 +7,14 @@ TOKEN_LIFETIME_FALLBACK = 3600  # seconds, used if token response has no expires
 
 CONF_SITES = "sites"
 CONF_TRACK_CLIENTS = "track_clients"
+CONF_SHOW_PANEL = "show_panel"
+CONF_INTERNET = "internet_health"
+CONF_SPEEDTEST_HOURS = "speedtest_hours"
+DEFAULT_SPEEDTEST_HOURS = 6  # 0 turns scheduled speed tests off
+
+PANEL_URL_PATH = "instant-on"
+PANEL_TITLE = "Network"
+PANEL_ICON = "mdi:lan"
 CONF_SCAN_INTERVAL = "scan_interval"
 DEFAULT_SCAN_INTERVAL = 60  # be polite to an unofficial cloud API
 MIN_SCAN_INTERVAL = 30

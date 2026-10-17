@@ -5,6 +5,20 @@ and versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-10-17
+
+### Added
+- A built-in **Network** sidebar panel that shows the card full-screen. Users no longer need to create a dashboard. Turn it off with the
+  new **Show the Network panel in the sidebar** option.
+- README steps for adding the card to your own dashboard.
+- `tools/card-preview/panel.html` for previewing the panel.
+- **Internet health**: latency, jitter, packet loss, DNS and HTTPS checks every 30 s, public IP and Cloudflare location, scheduled
+  Cloudflare speed tests with a **Run speed test** button, and a new *Internet* device with these sensors.
+- The card's new `internet` section: status, stat tiles, uptime (24 h / 7 d), 24 h latency chart, 7-day hourly status strip and
+  speed test history.
+- The Home Assistant host's own network link (speed, and Ethernet, Wi-Fi or virtual) is reported, and the card warns when it limits speed tests.
+- Options: **Monitor internet health**, **Run a speed test every (hours)**.
+
 ## [0.2.0] - 2026-10-16
 
 ### Added

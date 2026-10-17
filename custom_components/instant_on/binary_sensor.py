@@ -9,7 +9,7 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from . import InstantOnConfigEntry
 from .const import is_online
-from .entity import InstantOnEntity, inventory_device_info, inventory_id
+from .entity import InstantOnEntity, InternetEntity, inventory_device_info, inventory_id
 
 _ATTRS = (
     "deviceType", "health", "operationalState", "uptimeInSeconds",
@@ -22,12 +22,15 @@ async def async_setup_entry(
     hass: HomeAssistant, entry: InstantOnConfigEntry, async_add_entities: AddEntitiesCallback
 ) -> None:
     coordinator = entry.runtime_data
-    async_add_entities(
+    entities: list[BinarySensorEntity] = [
         DeviceOnline(coordinator, site_id, dev_id)
         for site_id, sd in coordinator.data.items()
         for dev in sd.inventory
         if (dev_id := inventory_id(dev))
-    )
+    ]
+    if coordinator.internet:
+        entities.append(InternetOnline(coordinator.internet))
+    async_add_entities(entities)
 
 
 class DeviceOnline(InstantOnEntity, BinarySensorEntity):
@@ -55,3 +58,17 @@ class DeviceOnline(InstantOnEntity, BinarySensorEntity):
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
         return {k: self._dev[k] for k in _ATTRS if k in self._dev}
+
+
+class InternetOnline(InternetEntity, BinarySensorEntity):
+    """On while the internet is reachable (healthy or degraded)."""
+
+    _attr_device_class = BinarySensorDeviceClass.CONNECTIVITY
+    _attr_translation_key = "internet"
+
+    def __init__(self, coordinator) -> None:
+        super().__init__(coordinator, "online")
+
+    @property
+    def is_on(self) -> bool:
+        return self.coordinator.data["state"] != "down"

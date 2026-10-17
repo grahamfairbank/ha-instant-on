@@ -7,19 +7,21 @@ from dataclasses import dataclass
 from typing import Any
 
 from homeassistant.components.sensor import (
+    RestoreSensor,
     SensorDeviceClass,
     SensorEntity,
     SensorEntityDescription,
     SensorStateClass,
 )
-from homeassistant.const import PERCENTAGE, UnitOfDataRate, UnitOfPower
+from homeassistant.const import PERCENTAGE, EntityCategory, UnitOfDataRate, UnitOfPower, UnitOfTime
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from . import InstantOnConfigEntry
 from .const import is_online, is_wireless
 from .coordinator import SiteData
-from .entity import InstantOnEntity, inventory_device_info, inventory_id, site_device_info
+from .entity import InstantOnEntity, InternetEntity, inventory_device_info, inventory_id, site_device_info
+from .internet import STATES
 from .overview import site_throughput
 
 
@@ -94,6 +96,8 @@ async def async_setup_entry(
             for desc in DEVICE_SENSORS:
                 if desc.exists_fn(dev):
                     entities.append(DeviceSensor(coordinator, site_id, dev_id, dev, desc))
+    if coordinator.internet:
+        entities += [InternetSensor(coordinator.internet, desc) for desc in INTERNET_SENSORS]
     async_add_entities(entities)
 
 
@@ -188,3 +192,81 @@ class DeviceSensor(InstantOnEntity, SensorEntity):
         if self.entity_description.key == "poe_power" and dev:
             return {"budget_w": dev.get("poePseNominalPowerInWatts")}
         return None
+
+
+@dataclass(frozen=True, kw_only=True)
+class InternetSensorDescription(SensorEntityDescription):
+    value_fn: Callable[[Any], Any]
+    attrs_fn: Callable[[Any], dict | None] = lambda c: None
+
+
+def _ms(**kw) -> dict:
+    return dict(device_class=SensorDeviceClass.DURATION, native_unit_of_measurement=UnitOfTime.MILLISECONDS,
+                state_class=SensorStateClass.MEASUREMENT, suggested_display_precision=0, **kw)
+
+
+def _rate(c, key):
+    return round(c.speed[key] / 1e6, 1) if c.speed else None
+
+
+INTERNET_SENSORS = (
+    InternetSensorDescription(
+        key="status", translation_key="internet_status", device_class=SensorDeviceClass.ENUM, options=list(STATES),
+        value_fn=lambda c: c.data["state"],
+        attrs_fn=lambda c: {"outage_since": c.data.get("outage_since"), "public_ip": c.data.get("ip"),
+                            "cloudflare_location": c.data.get("colo")},
+    ),
+    InternetSensorDescription(key="latency", translation_key="internet_latency", **_ms(),
+                              value_fn=lambda c: c.data["latency"],
+                              attrs_fn=lambda c: {"cloudflare_ms": c.data["cloudflare"]["ms"], "google_ms": c.data["google"]["ms"]}),
+    InternetSensorDescription(key="jitter", translation_key="internet_jitter", **_ms(), value_fn=lambda c: c.data["jitter"]),
+    InternetSensorDescription(key="packet_loss", translation_key="internet_packet_loss", native_unit_of_measurement=PERCENTAGE,
+                              state_class=SensorStateClass.MEASUREMENT, value_fn=lambda c: c.data["loss"]),
+    InternetSensorDescription(key="dns", translation_key="internet_dns", **_ms(), value_fn=lambda c: c.data["dns"],
+                              attrs_fn=lambda c: {"resolver": c.data.get("dns_resolver"), "cloudflare_ms": c.data.get("dns_cloudflare")}),
+    InternetSensorDescription(key="https", translation_key="internet_https", **_ms(), value_fn=lambda c: c.data["https"]),
+    InternetSensorDescription(
+        key="download", translation_key="internet_download", device_class=SensorDeviceClass.DATA_RATE,
+        native_unit_of_measurement=UnitOfDataRate.MEGABITS_PER_SECOND, state_class=SensorStateClass.MEASUREMENT,
+        value_fn=lambda c: _rate(c, "down"),
+        attrs_fn=lambda c: c.speed and {"tested_at": c.speed["at"], "latency_ms": c.speed["ms"],
+                                        "limited_by_host_link": c.speed["capped"], "host_link_mbps": c.speed["link_mbps"]},
+    ),
+    InternetSensorDescription(
+        key="upload", translation_key="internet_upload", device_class=SensorDeviceClass.DATA_RATE,
+        native_unit_of_measurement=UnitOfDataRate.MEGABITS_PER_SECOND, state_class=SensorStateClass.MEASUREMENT,
+        value_fn=lambda c: _rate(c, "up"),
+        attrs_fn=lambda c: c.speed and {"tested_at": c.speed["at"], "limited_by_host_link": c.speed["capped"]},
+    ),
+    InternetSensorDescription(
+        key="host_link", translation_key="internet_host_link", device_class=SensorDeviceClass.DATA_RATE,
+        native_unit_of_measurement=UnitOfDataRate.MEGABITS_PER_SECOND, entity_category=EntityCategory.DIAGNOSTIC,
+        value_fn=lambda c: (c.link or {}).get("speed"),
+        attrs_fn=lambda c: {"interface": (c.link or {}).get("iface"), "type": (c.link or {}).get("kind")},
+    ),
+)
+
+
+class InternetSensor(InternetEntity, RestoreSensor):
+    """Internet health sensor. Speed results are restored after a restart until the next test."""
+
+    entity_description: InternetSensorDescription
+
+    def __init__(self, coordinator, desc: InternetSensorDescription) -> None:
+        super().__init__(coordinator, desc.key)
+        self.entity_description = desc
+        self._restored = None
+
+    async def async_added_to_hass(self) -> None:
+        await super().async_added_to_hass()
+        if self.entity_description.key in ("download", "upload") and (last := await self.async_get_last_sensor_data()):
+            self._restored = last.native_value
+
+    @property
+    def native_value(self):
+        value = self.entity_description.value_fn(self.coordinator)
+        return self._restored if value is None and self._restored is not None else value
+
+    @property
+    def extra_state_attributes(self):
+        return self.entity_description.attrs_fn(self.coordinator) or None

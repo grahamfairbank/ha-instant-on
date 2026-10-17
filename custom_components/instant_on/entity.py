@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from homeassistant.helpers.device_registry import CONNECTION_NETWORK_MAC, DeviceInfo
+from homeassistant.helpers.device_registry import CONNECTION_NETWORK_MAC, DeviceEntryType, DeviceInfo
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import DOMAIN
@@ -54,3 +54,25 @@ class InstantOnEntity(CoordinatorEntity[InstantOnCoordinator]):
     @property
     def available(self) -> bool:
         return super().available and self.site_data is not None
+
+
+def internet_device_info(entry_id: str) -> DeviceInfo:
+    return DeviceInfo(
+        identifiers={(DOMAIN, f"internet_{entry_id}")},
+        name="Internet",
+        manufacturer="Instant On integration",
+        model="Internet health monitor",
+        entry_type=DeviceEntryType.SERVICE,
+    )
+
+
+class InternetEntity(CoordinatorEntity["InternetCoordinator"]):
+    """Entity backed by the internet health coordinator."""
+
+    _attr_has_entity_name = True
+
+    def __init__(self, coordinator, key: str) -> None:
+        super().__init__(coordinator)
+        entry_id = coordinator.config_entry.entry_id
+        self._attr_unique_id = f"internet_{entry_id}_{key}"
+        self._attr_device_info = internet_device_info(entry_id)

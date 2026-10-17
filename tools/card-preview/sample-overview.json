@@ -568,5 +568,52 @@
    },
    "updated": null
   }
- ]
+ ],
+ "internet": {
+  "state": "healthy",
+  "latency": 14.2,
+  "jitter": 1.8,
+  "loss": 0.0,
+  "cloudflare": {
+   "ms": 14.2,
+   "jitter": 1.8,
+   "loss": 0.0
+  },
+  "google": {
+   "ms": 18.9,
+   "jitter": 2.4,
+   "loss": 0.0
+  },
+  "dns": 9.6,
+  "dns_cloudflare": 15.1,
+  "dns_resolver": "192.0.2.1",
+  "https": 96.3,
+  "outage_since": null,
+  "ip": "203.0.113.42",
+  "colo": "SEA",
+  "loc": "US",
+  "link": {
+   "iface": "eth0",
+   "speed": 100,
+   "kind": "ethernet"
+  },
+  "speed": {
+   "down": 93400000,
+   "up": 41200000,
+   "ms": 15.0,
+   "at": null,
+   "capped": true,
+   "link_mbps": 100
+  },
+  "speed_running": false,
+  "entities": {
+   "latency": "sensor.internet_latency",
+   "status": "sensor.internet_internet_status",
+   "download": "sensor.internet_download_speed",
+   "upload": "sensor.internet_upload_speed",
+   "packet_loss": "sensor.internet_packet_loss",
+   "speedtest": "button.internet_run_speed_test"
+  },
+  "updated": null
+ }
 }

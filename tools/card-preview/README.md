@@ -11,7 +11,8 @@ From the repository root:
 python3 -m http.server 8000
 ```
 
-Then open <http://localhost:8000/tools/card-preview/>. Edit the card, then reload the page to see the change. The slider changes the card's width, so you
+Then open <http://localhost:8000/tools/card-preview/> for the card, or
+<http://localhost:8000/tools/card-preview/panel.html> for the full-screen Network panel. Edit the card, then reload the page to see the change. The slider changes the card's width, so you
 can check the phone layout.
 
 ## Use your own network's data

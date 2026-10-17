@@ -55,6 +55,7 @@ The card is one plain JavaScript file, `custom_components/instant_on/frontend/in
   from disk, so you don't need to restart for card-only changes. You do need to restart after changing any Python file.
 - **Data:** the card draws only what `overview.build_site()` returns (documented in [ARCHITECTURE.md](docs/ARCHITECTURE.md#dashboard-card)).
   If the card needs a new field, add it there, not in the card.
+- **The sidebar panel** (`instant-on-panel`) lives in the same file. Preview it with `tools/card-preview/panel.html`.
 - **Register through `registerCard()`, never `customElements.define()` at load time.** Home Assistant loads the file before installing its own
   element registry; see [the registry quirk](docs/ARCHITECTURE.md#how-its-delivered).
 - **Before opening a PR, check it at phone width** (the preview's width slider) and with Home Assistant's font. Text in Home Assistant runs slightly

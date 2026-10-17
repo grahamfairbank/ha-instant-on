@@ -41,6 +41,7 @@ class InstantOnCoordinator(TimestampDataUpdateCoordinator[dict[str, SiteData]]):
         )
         self.client = client
         self.site_device_ids: dict[str, str] = {}  # site id -> device registry id
+        self.internet = None  # InternetCoordinator when internet health is on
 
     async def _async_update_data(self) -> dict[str, SiteData]:
         wanted = set(self.config_entry.options.get(CONF_SITES) or self.config_entry.data.get(CONF_SITES, []))

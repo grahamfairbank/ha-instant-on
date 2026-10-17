@@ -14,7 +14,11 @@ from homeassistant.helpers import selector
 
 from .api import InstantOnAuthError, InstantOnClient, InstantOnError
 from .const import (
+    CONF_INTERNET,
     CONF_SCAN_INTERVAL,
+    CONF_SHOW_PANEL,
+    CONF_SPEEDTEST_HOURS,
+    DEFAULT_SPEEDTEST_HOURS,
     CONF_SITES,
     CONF_TRACK_CLIENTS,
     DEFAULT_SCAN_INTERVAL,
@@ -130,6 +134,11 @@ class InstantOnOptionsFlow(OptionsFlow):
                     vol.Required(
                         CONF_TRACK_CLIENTS, default=opts.get(CONF_TRACK_CLIENTS, True)
                     ): bool,
+                    vol.Required(CONF_SHOW_PANEL, default=opts.get(CONF_SHOW_PANEL, True)): bool,
+                    vol.Required(CONF_INTERNET, default=opts.get(CONF_INTERNET, True)): bool,
+                    vol.Required(
+                        CONF_SPEEDTEST_HOURS, default=opts.get(CONF_SPEEDTEST_HOURS, DEFAULT_SPEEDTEST_HOURS)
+                    ): vol.All(vol.Coerce(int), vol.Range(min=0, max=168)),
                 }
             ),
         )

@@ -4,12 +4,15 @@
  *
  *   type: custom:instant-on-card
  *   site: Home            # optional: site name or id (default: first site)
- *   sections: [header, kpis, map, aps, switches, talkers]   # optional subset / order
+ *   sections: [header, internet, kpis, map, aps, switches, talkers]   # optional subset / order
+ *
+ * The same file defines <instant-on-panel>, the built-in "Network" sidebar panel (panel_custom),
+ * which shows the card full-screen.
  */
-const VERSION = "0.2.0";
+const VERSION = "0.3.0";
 const REFRESH_MS = 30000;
 const HISTORY_MS = 300000;
-const ALL_SECTIONS = ["header", "kpis", "map", "aps", "switches", "talkers"];
+const ALL_SECTIONS = ["header", "internet", "kpis", "map", "aps", "switches", "talkers"];
 
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const fmtRate = (bps) => {
@@ -115,6 +118,27 @@ svg.spark{width:100%;height:64px;display:block;overflow:visible}
 .talk .ic{color:var(--dim);display:flex} .talk .nm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .talk .r{text-align:right}
 .empty{padding:28px;text-align:center;color:var(--dim)}
+.inet .stats{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:10px;margin-bottom:12px}
+@container (max-width:1000px){.inet .stats{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@container (max-width:520px){.inet .stats{grid-template-columns:repeat(2,minmax(0,1fr))}.inet .igrid{grid-template-columns:1fr!important}}
+.stat{background:#0a111e;border:1px solid var(--line);border-radius:11px;padding:10px 12px;min-width:0}
+.stat .lbl{font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--dim)}
+.stat .v{font-size:22px;font-weight:700;margin-top:3px;white-space:nowrap}
+.stat .v small{font-size:11px;color:var(--dim);font-weight:500;margin-left:2px}
+.stat .s{font-size:10.5px;color:var(--dim);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.igrid{display:grid;grid-template-columns:1.6fr 1fr;gap:14px}
+.subh{font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--dim);margin:12px 0 6px;display:flex;justify-content:space-between;align-items:center;gap:8px}
+.subh:first-child{margin-top:0}
+.strip{display:grid;grid-template-columns:repeat(168,1fr);gap:1px;height:16px}
+.strip i{background:#1a2438;border-radius:1px} .strip i.s2{background:var(--green);opacity:.75} .strip i.s1{background:var(--amber)} .strip i.s0{background:var(--red)}
+.axis{display:flex;justify-content:space-between;font-size:10px;color:var(--dim);margin-top:3px}
+.callout{display:flex;gap:10px;align-items:flex-start;padding:9px 12px;border-radius:10px;border:1px solid var(--line);background:#0a111e;font-size:12px;margin-bottom:12px;line-height:1.45}
+.callout.warn{border-color:#ffc24a66;background:#ffc24a12} .callout b{font-weight:650}
+.callout .ic{flex:none;color:var(--cyan);display:flex;margin-top:1px} .callout.warn .ic{color:var(--amber)}
+.btn{font:inherit;font-size:11px;font-weight:600;color:var(--cyan);background:#3ee0ff14;border:1px solid #3ee0ff55;border-radius:999px;padding:4px 11px;cursor:pointer;letter-spacing:.02em;text-transform:none}
+.btn[disabled]{opacity:.5;cursor:default}
+.srow{display:flex;justify-content:space-between;gap:8px;padding:6px 0;border-top:1px solid var(--line);font-size:12px}
+.srow:first-of-type{border-top:0}
 `;
 
 class InstantOnCard extends HTMLElement {
@@ -152,7 +176,8 @@ class InstantOnCard extends HTMLElement {
       const want = this._config.site;
       const site = (data.sites || []).find((s) => !want || s.name === want || s.id === String(want)) || (data.sites || [])[0];
       this._site = site;
-      if (site && (!this._histAt || Date.now() - this._histAt > HISTORY_MS)) await this._loadHistory(site);
+      this._net = data.internet || null;
+      if (site && (!this._histAt || Date.now() - this._histAt > HISTORY_MS)) await this._loadHistory(site, this._net);
       this._render();
     } catch (e) {
       this._error = e && (e.message || e.code) ? `${e.code || ""} ${e.message || ""}`.trim() : String(e);
@@ -162,22 +187,33 @@ class InstantOnCard extends HTMLElement {
     }
   }
 
-  async _loadHistory(site) {
-    const ids = Object.values(site.entities || {}).filter(Boolean);
-    if (!ids.length) return;
-    const end = new Date(), start = new Date(end - 24 * 3600 * 1000);
-    try {
-      const h = await this._hass.callWS({
-        type: "history/history_during_period", start_time: start.toISOString(), end_time: end.toISOString(),
-        entity_ids: ids, minimal_response: true, no_attributes: true, significant_changes_only: false,
-      });
-      const series = {};
-      for (const [key, id] of Object.entries(site.entities)) {
-        series[key] = (h[id] || []).map((p) => [(p.lu ?? p.lc) * 1000, parseFloat(p.s)]).filter((p) => !isNaN(p[1]));
-      }
-      this._hist = series;
-      this._histAt = Date.now();
-    } catch (e) { /* history is optional */ }
+  async _loadHistory(site, net) {
+    const end = new Date();
+    const fetch = async (ids, hours) => {
+      ids = ids.filter(Boolean);
+      if (!ids.length) return {};
+      try {
+        return await this._hass.callWS({
+          type: "history/history_during_period", start_time: new Date(end - hours * 3600 * 1000).toISOString(), end_time: end.toISOString(),
+          entity_ids: ids, minimal_response: true, no_attributes: true, significant_changes_only: false,
+        });
+      } catch (e) { return {}; /* history is optional */ }
+    };
+    const num = (rows) => (rows || []).map((p) => [(p.lu ?? p.lc) * 1000, parseFloat(p.s)]).filter((p) => !isNaN(p[1]));
+    const se = site.entities || {}, ne = (net && net.entities) || {};
+    const [day, week] = await Promise.all([
+      fetch([...Object.values(se), ne.latency, ne.packet_loss], 24),
+      fetch([ne.status, ne.download, ne.upload], 24 * 7),
+    ]);
+    const series = {};
+    for (const [key, id] of Object.entries(se)) series[key] = num(day[id]);
+    series.latency = num(day[ne.latency]);
+    series.loss = num(day[ne.packet_loss]);
+    series.status = (week[ne.status] || []).map((p) => [(p.lu ?? p.lc) * 1000, p.s]);
+    series.download = num(week[ne.download]);
+    series.upload = num(week[ne.upload]);
+    this._hist = series;
+    this._histAt = Date.now();
   }
 
   _updateAgo() {
@@ -192,7 +228,7 @@ class InstantOnCard extends HTMLElement {
       root.innerHTML = `<div class="empty">${this._error ? `Couldn't load Instant On data: ${esc(this._error)}` : "No Instant On site found. Is the integration set up?"}</div>`;
       return;
     }
-    const parts = { header: () => this._header(s), kpis: () => this._kpis(s), map: () => this._map(s), aps: null, switches: null, talkers: () => this._talkers(s) };
+    const parts = { header: () => this._header(s), internet: () => this._internet(), kpis: () => this._kpis(s), map: () => this._map(s), aps: null, switches: null, talkers: () => this._talkers(s) };
     const secs = this._config.sections;
     let html = "";
     for (let i = 0; i < secs.length; i++) {
@@ -208,6 +244,8 @@ class InstantOnCard extends HTMLElement {
     root.innerHTML = html;
     // Animate rings from empty on first paint.
     requestAnimationFrame(() => root.querySelectorAll(".arc[data-off]").forEach((a) => a.setAttribute("stroke-dashoffset", a.dataset.off)));
+    const btn = root.querySelector("#speedbtn");
+    if (btn) btn.addEventListener("click", () => this._runSpeedtest());
   }
 
   _status(s) {
@@ -252,6 +290,86 @@ class InstantOnCard extends HTMLElement {
       <defs><linearGradient id="g${id}" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="${color}" stop-opacity=".35"/><stop offset="1" stop-color="${color}" stop-opacity="0"/></linearGradient></defs>
       ${fill ? `<path d="${d}L300,${h}L0,${h}Z" fill="url(#g${id})"/>` : ""}
       <path d="${d}" fill="none" stroke="${color}" stroke-width="1.6" vector-effect="non-scaling-stroke" style="filter:drop-shadow(0 0 3px ${color})"/></svg>`;
+  }
+
+  _internet() {
+    const n = this._net;
+    if (!n) return "";
+    const H = this._hist || {};
+    const st = { healthy: ["", "Healthy", "var(--green)"], degraded: ["warn", "Degraded", "var(--amber)"], down: ["bad", "Down", "var(--red)"] }[n.state] || ["warn", n.state, "var(--amber)"];
+    const ms = (v, d = 0) => (v == null ? "—" : `${Number(v).toFixed(d)}<small>ms</small>`);
+    // Uptime from the status history: share of time not "down" (unknown time is ignored).
+    const uptime = (hours) => {
+      const pts = H.status || [], t0 = Date.now() - hours * 3600e3;
+      let up = 0, total = 0;
+      pts.forEach((p, i) => {
+        const a = Math.max(p[0], t0), b = i + 1 < pts.length ? pts[i + 1][0] : Date.now();
+        if (b <= a || !["healthy", "degraded", "down"].includes(p[1])) return;
+        total += b - a; if (p[1] !== "down") up += b - a;
+      });
+      if (!total) return "—";
+      const pct = (100 * up) / total;
+      return (pct >= 99.995 ? "100" : pct.toFixed(pct >= 99.9 ? 3 : 2)) + "%";
+    };
+    // 7-day strip: worst state seen in each hour.
+    const rank = { down: 0, degraded: 1, healthy: 2 };
+    const pts = H.status || [], h0 = Math.floor(Date.now() / 3600e3) * 3600e3;
+    const cells = [];
+    for (let k = 167; k >= 0; k--) {
+      const a = h0 - k * 3600e3, b = a + 3600e3;
+      let worst = null;
+      pts.forEach((p, i) => {
+        const end = i + 1 < pts.length ? pts[i + 1][0] : Date.now();
+        if (p[0] < b && end > a && p[1] in rank) worst = worst == null ? rank[p[1]] : Math.min(worst, rank[p[1]]);
+      });
+      cells.push(`<i class="${worst == null ? "" : "s" + worst}" title="${new Date(a).toLocaleString([], { weekday: "short", hour: "2-digit", minute: "2-digit" })} · ${worst == null ? "no data" : ["down", "degraded", "healthy"][worst]}"></i>`);
+    }
+    // Host link: speed tests can't exceed the Home Assistant host's own port.
+    const L = n.link || {}, sp = n.speed;
+    const linkTxt = L.kind === "wifi" ? `Wi-Fi (${esc(L.iface)})` : L.speed ? `${L.speed >= 1000 ? L.speed / 1000 + " Gb/s" : L.speed + " Mb/s"} ${L.kind === "virtual" ? "virtual NIC" : "Ethernet"} (${esc(L.iface)})` : L.iface ? `${esc(L.iface)}, speed not reported` : "unknown";
+    let callout = "";
+    if (sp && sp.capped) callout = `<div class="callout warn"><span class="ic">${icon("switch", 16)}</span><div><b>Speed test limited by the Home Assistant host.</b> The last result (↓ ${rate(sp.down)}) is close to this host's ${L.speed} Mb/s network port, so your internet is probably faster than shown. Test from a computer with a faster connection to check.</div></div>`;
+    else if (L.kind === "wifi") callout = `<div class="callout warn"><span class="ic">${icon("accessPoint", 16)}</span><div><b>Home Assistant is on Wi-Fi.</b> Speed tests measure the Wi-Fi link as much as the internet, so results may be lower than your plan.</div></div>`;
+    else if (L.speed && L.speed <= 100) callout = `<div class="callout warn"><span class="ic">${icon("switch", 16)}</span><div><b>This Home Assistant host has a ${L.speed} Mb/s network port.</b> Speed tests can't measure above about ${L.speed} Mb/s from here (common on older Raspberry Pis), so faster internet plans will show as ~${Math.round(L.speed * 0.94)} Mb/s.</div></div>`;
+    else if (L.kind === "virtual") callout = `<div class="callout"><span class="ic">${icon("switch", 16)}</span><div><b>Home Assistant runs in a virtual machine</b> (${esc(L.iface)}). The reported port speed is nominal; speed tests are limited by the physical host's network port.</div></div>`;
+    // Speed tests from the download/upload history (each change = one test).
+    const tests = (H.download || []).map((d) => {
+      const u = (H.upload || []).reduce((best, x) => (Math.abs(x[0] - d[0]) < Math.abs((best || [Infinity])[0] - d[0]) ? x : best), null);
+      return { t: d[0], down: d[1], up: u ? u[1] : null };
+    }).reverse().slice(0, 6);
+    const when = (t) => new Date(t).toLocaleString([], { weekday: "short", hour: "2-digit", minute: "2-digit" });
+    const lossMax = Math.max(0, ...(H.loss || []).map((p) => p[1]));
+    return `<div class="panel inet"><h3><span>Internet health</span><span class="chip" style="padding:3px 10px"><span class="dot ${st[0]} pulse"></span>${st[1]}${n.outage_since ? ` since ${new Date(n.outage_since).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}` : ""}</span></h3>
+      <div class="small dim mono" style="margin:-4px 0 10px">${n.ip ? `public ${esc(n.ip)} · ` : ""}${n.colo ? `Cloudflare ${esc(n.colo)} · ` : ""}HA host link ${linkTxt}</div>
+      ${callout}
+      <div class="stats">
+        <div class="stat"><div class="lbl">Latency</div><div class="v mono">${ms(n.latency)}</div><div class="s mono">1.1.1.1 ${n.cloudflare.ms ?? "—"} · 8.8.8.8 ${n.google.ms ?? "—"}</div></div>
+        <div class="stat"><div class="lbl">Jitter</div><div class="v mono">${ms(n.jitter, 1)}</div><div class="s mono">TCP connect variation</div></div>
+        <div class="stat"><div class="lbl">Packet loss</div><div class="v mono" style="${n.loss > 0 ? "color:var(--amber)" : ""}">${n.loss}<small>%</small></div><div class="s mono">24 h max ${lossMax}%</div></div>
+        <div class="stat"><div class="lbl">DNS lookup</div><div class="v mono">${ms(n.dns)}</div><div class="s mono">${n.dns_resolver ? esc(n.dns_resolver) : "1.1.1.1"} · 1.1.1.1 ${n.dns_cloudflare ?? "—"}</div></div>
+        <div class="stat"><div class="lbl">Uptime</div><div class="v mono">${uptime(24)}</div><div class="s mono">24 h · 7 d ${uptime(168)}</div></div>
+        <div class="stat"><div class="lbl">Speed</div><div class="v mono">${sp ? `↓${Math.round(sp.down / 1e6)}<small>↑${Math.round(sp.up / 1e6)} Mb/s</small>` : "—"}</div><div class="s mono">${n.speed_running ? "test running…" : sp && sp.at ? `tested ${ago(sp.at)}` : "no test yet"}${sp && sp.capped ? " · host-limited" : ""}</div></div>
+      </div>
+      <div class="igrid"><div>
+        <div class="subh"><span>Latency · last 24 h</span><span class="mono" style="text-transform:none;letter-spacing:0">HTTPS ${n.https ?? "—"} ms</span></div>
+        ${this._spark(H.latency, "#3ee0ff", "lat", true, 70)}
+        <div class="subh"><span>Last 7 days · hourly</span></div>
+        <div class="strip">${cells.join("")}</div><div class="axis mono"><span>7 days ago</span><span>now</span></div>
+      </div><div>
+        <div class="subh"><span>Speed tests</span>${n.entities && n.entities.speedtest ? `<button class="btn" id="speedbtn" ${n.speed_running ? "disabled" : ""}>${n.speed_running ? "Running…" : "Run now"}</button>` : ""}</div>
+        ${tests.length ? tests.map((r) => `<div class="srow"><span class="mono dim">${when(r.t)}</span><span class="mono">↓ <b>${Math.round(r.down)}</b> · ↑ <b>${r.up == null ? "—" : Math.round(r.up)}</b> Mb/s</span></div>`).join("")
+          : `<div class="small dim">The first test runs a couple of minutes after Home Assistant starts, then on the schedule set in the integration's options.</div>`}
+      </div></div></div>`;
+  }
+
+  async _runSpeedtest() {
+    const id = this._net && this._net.entities && this._net.entities.speedtest;
+    if (!id) return;
+    this._net.speed_running = true;
+    this._render();
+    try { await this._hass.callService("button", "press", { entity_id: id }); } catch (e) { /* shown by HA */ }
+    // Pick up the result: tests take about 10-40 s.
+    [15000, 35000, 60000].forEach((ms) => setTimeout(() => { this._histAt = 0; this._refresh(); }, ms));
   }
 
   _kpis(s) {
@@ -383,10 +501,54 @@ class InstantOnCard extends HTMLElement {
   }
 }
 
+// Full-screen sidebar panel registered by the integration (panel_custom). Home Assistant sets
+// hass, narrow, route and panel on it.
+const PANEL_STYLE = `
+:host{display:block;min-height:100vh;background:var(--primary-background-color,#111318)}
+.toolbar{position:sticky;top:0;z-index:2;display:flex;align-items:center;gap:4px;height:var(--header-height,56px);padding:0 12px;
+  box-sizing:border-box;background:var(--app-header-background-color,var(--primary-color));color:var(--app-header-text-color,#fff);
+  border-bottom:var(--app-header-border-bottom,none);font-family:var(--ha-font-family-body,Roboto,system-ui,sans-serif)}
+.toolbar .title{font-size:20px;font-weight:400;margin-left:12px;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.toolbar ha-menu-button{color:inherit}
+.content{max-width:1440px;margin:0 auto;padding:16px;box-sizing:border-box}
+@media (max-width:600px){.content{padding:8px}}
+`;
+
+class InstantOnPanel extends HTMLElement {
+  set hass(hass) {
+    this._hass = hass;
+    if (this._menu) this._menu.hass = hass;
+    if (this._card) this._card.hass = hass;
+  }
+  set narrow(narrow) {
+    this._narrow = narrow;
+    if (this._menu) this._menu.narrow = narrow;
+  }
+  set panel(panel) {
+    this._panel = panel;
+    if (this._title) this._title.textContent = panel.title || "Network";
+  }
+  connectedCallback() {
+    if (this.shadowRoot) return;
+    this.attachShadow({ mode: "open" });
+    this.shadowRoot.innerHTML = `<style>${PANEL_STYLE}</style>
+      <div class="toolbar"><ha-menu-button></ha-menu-button><div class="title"></div></div><div class="content"></div>`;
+    this._menu = this.shadowRoot.querySelector("ha-menu-button");
+    this._title = this.shadowRoot.querySelector(".title");
+    this._title.textContent = (this._panel && this._panel.title) || "Network";
+    this._card = document.createElement("instant-on-card");
+    this._card.setConfig((this._panel && this._panel.config && this._panel.config.card) || {});
+    this.shadowRoot.querySelector(".content").appendChild(this._card);
+    if (this._hass) this.hass = this._hass;
+    if (this._narrow !== undefined) this.narrow = this._narrow;
+  }
+}
+
 // The integration loads this file early (extra module URL), before the Home Assistant app swaps in
 // its own custom element registry. Defining straight away would register the card in the original
 // registry, where Lovelace can't see it, so wait until the app shell itself is defined.
 const registerCard = () => {
+  if (!window.customElements.get("instant-on-panel")) window.customElements.define("instant-on-panel", InstantOnPanel);
   if (window.customElements.get("instant-on-card")) return;
   window.customElements.define("instant-on-card", InstantOnCard);
   window.customCards = window.customCards || [];

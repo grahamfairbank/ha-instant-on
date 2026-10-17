@@ -38,7 +38,15 @@
       "init": {
         "data": {
           "scan_interval": "Polling interval (seconds)",
-          "track_clients": "Create device trackers for clients"
+          "track_clients": "Create device trackers for clients",
+          "show_panel": "Show the Network panel in the sidebar",
+          "internet_health": "Monitor internet health",
+          "speedtest_hours": "Run a speed test every (hours, 0 = never)"
+        },
+        "data_description": {
+          "show_panel": "A full-screen view of the Instant On card. Turn off if you'd rather put the card on your own dashboard.",
+          "internet_health": "Latency, packet loss, DNS and HTTPS checks from the Home Assistant host every 30 seconds, shown in the card's Internet section.",
+          "speedtest_hours": "Each test downloads about 25 MB and uploads about 8 MB. Results can't exceed the Home Assistant host's own network port (for example 100 Mb/s on many Raspberry Pis)."
         }
       }
     }
@@ -77,6 +85,48 @@
       },
       "poe_power": {
         "name": "PoE power"
+      },
+      "internet_status": {
+        "name": "Internet status",
+        "state": {
+          "healthy": "Healthy",
+          "degraded": "Degraded",
+          "down": "Down"
+        }
+      },
+      "internet_latency": {
+        "name": "Latency"
+      },
+      "internet_jitter": {
+        "name": "Jitter"
+      },
+      "internet_packet_loss": {
+        "name": "Packet loss"
+      },
+      "internet_dns": {
+        "name": "DNS lookup"
+      },
+      "internet_https": {
+        "name": "HTTPS response"
+      },
+      "internet_download": {
+        "name": "Download speed"
+      },
+      "internet_upload": {
+        "name": "Upload speed"
+      },
+      "internet_host_link": {
+        "name": "Host link speed"
+      }
+    },
+    "binary_sensor": {
+      "internet": {
+        "name": "Internet"
+      }
+    },
+    "button": {
+      "speedtest": {
+        "name": "Run speed test"
       }
     }
   }
