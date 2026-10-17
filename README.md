@@ -2,7 +2,7 @@
 
 [![HACS Custom](https://img.shields.io/badge/HACS-Custom-41BDF5.svg)](https://hacs.xyz/docs/faq/custom_repositories)
 [![Validate](https://github.com/grahamfairbank/ha-instant-on/actions/workflows/validate.yml/badge.svg)](https://github.com/grahamfairbank/ha-instant-on/actions/workflows/validate.yml)
-![Version](https://img.shields.io/badge/version-0.3.0-blue)
+![Version](https://img.shields.io/badge/version-0.3.1-blue)
 
 An **unofficial, read-only** Home Assistant integration for **HPE Aruba Networking Instant On** access points and switches.
 It polls the same cloud API the Instant On web portal uses, so you get presence detection for every client on your network, plus
@@ -153,7 +153,7 @@ restart. Your settings and entities are kept.
 ### Which version am I running?
 
 - **HACS** shows the installed version on the integration's HACS page.
-- The card prints its version in the browser console (`INSTANT-ON-CARD 0.3.0`). If that's older than the version you installed, refresh the
+- The card prints its version in the browser console (`INSTANT-ON-CARD 0.3.1`). If that's older than the version you installed, refresh the
   browser as above.
 
 Settings, entities and history are kept across updates. Nothing is reset unless the changelog says so.

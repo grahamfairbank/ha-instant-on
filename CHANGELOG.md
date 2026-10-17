@@ -5,12 +5,23 @@ and versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.3.1] - 2026-10-17
+
+No change in behaviour from 0.3.0.
+
+### Added
+- Integration icon (`brand/icon.png`), shown in HACS.
+
+### Changed
+- Code style fixes (import order, `TimeoutError`, `datetime.UTC`, `itertools.pairwise`), with lint rules pinned in `ruff.toml`.
+- The Validate workflow runs on pushes to `main` only (not on tags), pins ruff 0.14.0, and uses `actions/checkout@v5`.
+
 ## [0.3.0] - 2026-10-17
 
 ### Added
 - A built-in **Network** sidebar panel that shows the card full-screen. Users no longer need to create a dashboard. Turn it off with the
   new **Show the Network panel in the sidebar** option.
-- README steps for adding the card to your own dashboard.
+- README steps for adding the card to your own dashboard, and for updating; full release steps in CONTRIBUTING.
 - `tools/card-preview/panel.html` for previewing the panel.
 - **Internet health**: latency, jitter, packet loss, DNS and HTTPS checks every 30 s, public IP and Cloudflare location, scheduled
   Cloudflare speed tests with a **Run speed test** button, and a new *Internet* device with these sensors.

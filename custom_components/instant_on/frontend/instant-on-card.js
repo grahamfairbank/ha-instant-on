@@ -9,7 +9,7 @@
  * The same file defines <instant-on-panel>, the built-in "Network" sidebar panel (panel_custom),
  * which shows the card full-screen.
  */
-const VERSION = "0.3.0";
+const VERSION = "0.3.1";
 const REFRESH_MS = 30000;
 const HISTORY_MS = 300000;
 const ALL_SECTIONS = ["header", "internet", "kpis", "map", "aps", "switches", "talkers"];
