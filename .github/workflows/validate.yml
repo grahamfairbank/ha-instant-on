@@ -2,16 +2,17 @@ name: Validate
 
 on:
   push:
+    branches: [main]  # not tags: a release tag would re-run the same commit
   pull_request:
   schedule:
-    - cron: "0 6 * * 1"
+    - cron: "0 6 * * 1"  # weekly, to catch HACS or Home Assistant rule changes
   workflow_dispatch:
 
 jobs:
   hassfest:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: home-assistant/actions/hassfest@master
 
   hacs:
@@ -24,5 +25,7 @@ jobs:
   lint:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: astral-sh/ruff-action@v3
+        with:
+          version: "0.14.0"  # pinned; rules are in ruff.toml

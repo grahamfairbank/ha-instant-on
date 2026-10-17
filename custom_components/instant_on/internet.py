@@ -6,17 +6,17 @@ Assistant (no raw sockets), so latency is measured as TCP connect time to well-k
 from __future__ import annotations
 
 import asyncio
+from datetime import UTC, datetime, timedelta
+from itertools import pairwise
 import logging
 import os
 import random
 import socket
 import struct
 import time
-from datetime import datetime, timedelta, timezone
 from typing import Any
 
 import aiohttp
-
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.aiohttp_client import async_create_clientsession
@@ -55,13 +55,13 @@ async def _tcp_ping(host: str, port: int) -> dict[str, Any]:
             _, writer = await asyncio.wait_for(asyncio.open_connection(host, port), CONNECT_TIMEOUT)
             times.append((time.perf_counter() - start) * 1000)
             writer.close()
-        except (OSError, asyncio.TimeoutError):
+        except (TimeoutError, OSError):
             pass
         await asyncio.sleep(0.1)
     loss = round(100 * (SAMPLES - len(times)) / SAMPLES, 1)
     if not times:
         return {"ms": None, "jitter": None, "loss": 100.0}
-    jitter = sum(abs(a - b) for a, b in zip(times, times[1:])) / max(1, len(times) - 1)
+    jitter = sum(abs(a - b) for a, b in pairwise(times)) / max(1, len(times) - 1)
     return {"ms": round(sum(times) / len(times), 1), "jitter": round(jitter, 1), "loss": loss}
 
 
@@ -169,7 +169,7 @@ class InternetCoordinator(TimestampDataUpdateCoordinator[dict[str, Any]]):
                 text = await resp.text()
             self.trace = dict(line.split("=", 1) for line in text.splitlines() if "=" in line)
             self._trace_at = time.monotonic()
-        except (aiohttp.ClientError, asyncio.TimeoutError):
+        except (TimeoutError, aiohttp.ClientError):
             pass
 
     async def _https(self) -> float | None:
@@ -183,7 +183,7 @@ class InternetCoordinator(TimestampDataUpdateCoordinator[dict[str, Any]]):
                 if resp.status >= 400:
                     return None
             return round((time.perf_counter() - start) * 1000, 1)
-        except (aiohttp.ClientError, asyncio.TimeoutError):
+        except (TimeoutError, aiohttp.ClientError):
             return None
 
     async def _async_update_data(self) -> dict[str, Any]:
@@ -203,7 +203,7 @@ class InternetCoordinator(TimestampDataUpdateCoordinator[dict[str, Any]]):
             state = 1
         else:
             state = 2
-        now = datetime.now(timezone.utc).isoformat()
+        now = datetime.now(UTC).isoformat()
         if state == 0 and self.outage_since is None:
             self.outage_since = now
         elif state > 0:
@@ -239,7 +239,7 @@ class InternetCoordinator(TimestampDataUpdateCoordinator[dict[str, Any]]):
             try:
                 self.speed = await self._speedtest()
                 _LOGGER.debug("Speed test: %s", self.speed)
-            except (aiohttp.ClientError, asyncio.TimeoutError) as err:
+            except (TimeoutError, aiohttp.ClientError) as err:
                 _LOGGER.warning("Speed test failed: %s", err)
             finally:
                 self._last_speed = time.monotonic()
@@ -282,7 +282,7 @@ class InternetCoordinator(TimestampDataUpdateCoordinator[dict[str, Any]]):
             "down": round(down_bps),
             "up": round(up_bps),
             "ms": latency,
-            "at": datetime.now(timezone.utc).isoformat(),
+            "at": datetime.now(UTC).isoformat(),
             "capped": capped,
             "link_mbps": link_mbps,
         }

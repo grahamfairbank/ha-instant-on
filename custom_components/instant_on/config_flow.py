@@ -4,24 +4,23 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import Any
 
-import voluptuous as vol
-
 from homeassistant.config_entries import ConfigEntry, ConfigFlow, ConfigFlowResult, OptionsFlow
 from homeassistant.const import CONF_PASSWORD, CONF_USERNAME
 from homeassistant.core import callback
-from homeassistant.helpers.aiohttp_client import async_create_clientsession
 from homeassistant.helpers import selector
+from homeassistant.helpers.aiohttp_client import async_create_clientsession
+import voluptuous as vol
 
 from .api import InstantOnAuthError, InstantOnClient, InstantOnError
 from .const import (
     CONF_INTERNET,
     CONF_SCAN_INTERVAL,
     CONF_SHOW_PANEL,
-    CONF_SPEEDTEST_HOURS,
-    DEFAULT_SPEEDTEST_HOURS,
     CONF_SITES,
+    CONF_SPEEDTEST_HOURS,
     CONF_TRACK_CLIENTS,
     DEFAULT_SCAN_INTERVAL,
+    DEFAULT_SPEEDTEST_HOURS,
     DOMAIN,
     MIN_SCAN_INTERVAL,
 )
@@ -64,7 +63,7 @@ class InstantOnConfigFlow(ConfigFlow, domain=DOMAIN):
                 errors["base"] = "invalid_auth"
             except InstantOnError:
                 errors["base"] = "cannot_connect"
-            except Exception:  # noqa: BLE001
+            except Exception:
                 errors["base"] = "unknown"
             else:
                 if not self._sites:

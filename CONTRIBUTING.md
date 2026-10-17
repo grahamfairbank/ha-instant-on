@@ -17,7 +17,7 @@ contributions**.
 git clone https://github.com/grahamfairbank/ha-instant-on
 cd ha-instant-on
 python3 -m venv .venv && . .venv/bin/activate
-pip install homeassistant pytest-homeassistant-custom-component ruff
+pip install homeassistant pytest-homeassistant-custom-component ruff==0.14.0
 ```
 
 To run it in a Home Assistant dev instance, symlink the component into your config directory:
@@ -69,7 +69,8 @@ The card is one plain JavaScript file, `custom_components/instant_on/frontend/in
 - Entities read from the coordinator only; they never call the API.
 - Access new API fields with `.get()`: the schema can change without warning.
 - Document new fields or endpoints in [docs/API.md](docs/API.md).
-- Run `ruff check . && ruff format .` before you open a PR.
+- Run `ruff check .` before you open a PR (the rules are in `ruff.toml`; CI uses ruff 0.14.0). Without a local ruff:
+  `docker run --rm -v "$PWD:/io" -w /io ghcr.io/astral-sh/ruff:0.14.0 check --no-cache .`
 
 ## Pull requests
 
