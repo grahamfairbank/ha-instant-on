@@ -65,7 +65,11 @@ def _device(dev: dict[str, Any], clients_by_dev: dict[str, int]) -> dict[str, An
     return out
 
 
-def talkers(clients: dict[str, dict]) -> list[dict[str, Any]]:
+def _name(c: dict, label) -> str:
+    return label(c)["name"] if label else (client_name(c) or client_mac(c))
+
+
+def talkers(clients: dict[str, dict], label=None) -> list[dict[str, Any]]:
     """One entry per wireless client, and one per switch port for wired clients.
 
     Wired clients report the throughput of the switch port they sit behind, so clients
@@ -79,10 +83,12 @@ def talkers(clients: dict[str, dict]) -> list[dict[str, Any]]:
         wireless = is_wireless(c)
         key = client_mac(c) if wireless or not port.get("deviceId") else (port.get("deviceId"), port.get("portNumber"))
         if key in out:
-            out[key]["names"].append(client_name(c) or client_mac(c))
+            out[key]["names"].append(_name(c, label))
             continue
         out[key] = {
-            "names": [client_name(c) or client_mac(c)],
+            "names": [_name(c, label)],
+            "vendor": (label(c) if label else {}).get("vendor"),
+            "kind": (label(c) if label else {}).get("kind"),
             "type": "wireless" if wireless else "wired",
             "via": c.get("deviceName"),
             "port": None if wireless else port.get("portNumber"),
@@ -93,18 +99,39 @@ def talkers(clients: dict[str, dict]) -> list[dict[str, Any]]:
     return list(out.values())
 
 
+def _client_row(c: dict, label) -> dict[str, Any]:
+    lab = label(c) if label else {"name": client_name(c) or client_mac(c), "source": "instant_on"}
+    port = (c.get("connectedToPorts") or [{}])[0]
+    return {
+        "name": lab["name"],
+        "source": lab.get("source"),
+        "vendor": lab.get("vendor"),
+        "kind": lab.get("kind"),
+        "mac": client_mac(c),
+        "ip": lab.get("ip") or c.get("ipAddress") or None,
+        "hostnames": lab.get("hostnames") or {},
+        "online": is_online(c),
+        "type": "wireless" if is_wireless(c) else "wired",
+        "via": c.get("deviceName"),
+        "port": port.get("portNumber"),
+        "band": c.get("wirelessBand"),
+        "signal": c.get("signalQuality"),
+        "down": _bps(c, "downstreamThroughputInBitsPerSecond") if is_wireless(c) else None,
+    }
+
+
 def site_throughput(clients: dict[str, dict]) -> tuple[int, int]:
     t = talkers(clients)
     return sum(x["down"] for x in t), sum(x["up"] for x in t)
 
 
-def build_site(site: dict, clients: dict[str, dict], inventory: list[dict]) -> dict[str, Any]:
+def build_site(site: dict, clients: dict[str, dict], inventory: list[dict], label=None) -> dict[str, Any]:
     online = [c for c in clients.values() if is_online(c)]
     by_dev: dict[str, int] = {}
     for c in online:
         if dev := c.get("deviceId"):
             by_dev[dev] = by_dev.get(dev, 0) + 1
-    flows = talkers(clients)
+    flows = talkers(clients, label)
     down, up = sum(x["down"] for x in flows), sum(x["up"] for x in flows)
     top = sorted(flows, key=lambda x: x["down"] + x["up"], reverse=True)[:TOP_CLIENTS]
     score = site.get("currentHealthScore") or {}
@@ -140,6 +167,7 @@ def build_site(site: dict, clients: dict[str, dict], inventory: list[dict]) -> d
         },
         "throughput": {"down": down, "up": up},
         "devices": [_device(d, by_dev) for d in inventory],
+        "client_list": [_client_row(c, label) for c in sorted(clients.values(), key=lambda c: (not is_online(c), _name(c, label).lower()))],
         "top_clients": [
             {
                 "name": t["names"][0],
@@ -147,6 +175,8 @@ def build_site(site: dict, clients: dict[str, dict], inventory: list[dict]) -> d
                 "type": t["type"],
                 "via": t["via"],
                 "port": t["port"],
+                "vendor": t.get("vendor"),
+                "kind": t.get("kind"),
                 "band": t["band"],
                 "down": t["down"],
                 "up": t["up"],

@@ -5,6 +5,18 @@ and versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-10-17
+
+### Added
+- **Client names** for clients Instant On only knows by MAC: Home Assistant device names, mDNS (zeroconf cache, including MACs embedded in
+  hostnames), DHCP hostnames, reverse DNS, NetBIOS, and an offline MAC vendor database (Wireshark `manuf`, downloaded monthly). Each client
+  also gets a vendor and device type. Results are cached across restarts.
+- The card's `clients` section: every client with its name, name source, vendor, type, connection and IP, with filters.
+- Device-type icons in the card (speaker, camera, printer, TV, console, computer, Apple, phone, IoT).
+- Device tracker attributes: `vendor`, `device_type`, `name_source`, discovered hostnames and `ip_discovered`.
+- Options: **Look up names for unnamed clients** (on), **Scan the local network to find wired clients' IP addresses** (off).
+- Diagnostics: counts of where client names came from.
+
 ## [0.3.1] - 2026-10-17
 
 No change in behaviour from 0.3.0.

@@ -2,7 +2,7 @@
 
 [![HACS Custom](https://img.shields.io/badge/HACS-Custom-41BDF5.svg)](https://hacs.xyz/docs/faq/custom_repositories)
 [![Validate](https://github.com/grahamfairbank/ha-instant-on/actions/workflows/validate.yml/badge.svg)](https://github.com/grahamfairbank/ha-instant-on/actions/workflows/validate.yml)
-![Version](https://img.shields.io/badge/version-0.3.1-blue)
+![Version](https://img.shields.io/badge/version-0.4.0-blue)
 
 An **unofficial, read-only** Home Assistant integration for **HPE Aruba Networking Instant On** access points and switches.
 It polls the same cloud API the Instant On web portal uses, so you get presence detection for every client on your network, plus
@@ -27,6 +27,7 @@ the online status of each AP and switch and the health of each site.
 - [Updating](#updating)
 - [Dashboard card](#dashboard-card)
 - [Internet health](#internet-health)
+- [Client names](#client-names)
 - [Entities](#entities)
 - [Example automations](#example-automations)
 - [Troubleshooting](#troubleshooting)
@@ -37,6 +38,7 @@ the online status of each AP and switch and the health of each site.
 
 ## Features
 
+- **Useful names for every client**, even ones Instant On only knows by MAC address: vendor, device type, and names from mDNS, DHCP, DNS and NetBIOS
 - **Presence detection** for every wired and wireless client (`device_tracker`), with the AP or switch port it's connected to
 - **Online/offline sensor** for every AP and switch, with uptime, health, uplink and firmware-currency attributes
 - **Per-site sensors**: total, wireless and wired client counts, network device count, active alerts, health score
@@ -96,6 +98,8 @@ Open **Configure** on the integration card to change:
 | Create device trackers for clients | On | Turn off if you only want the site and device sensors. |
 | Show the Network panel in the sidebar | On | Turn off if you'd rather put the card on your own dashboard (see below). |
 | Monitor internet health | On | Checks from the Home Assistant host every 30 s. Turn off to remove the Internet entities and the card's Internet section. |
+| Look up names for unnamed clients | On | See [Client names](#client-names). |
+| Scan the local network to find wired clients' IP addresses | Off | Helps name wired devices. See [Client names](#client-names). |
 | Run a speed test every (hours) | 6 | 0 turns scheduled tests off (you can still press **Run speed test**). Each test uses about 33 MB. |
 
 ### Enable the trackers you care about
@@ -153,7 +157,7 @@ restart. Your settings and entities are kept.
 ### Which version am I running?
 
 - **HACS** shows the installed version on the integration's HACS page.
-- The card prints its version in the browser console (`INSTANT-ON-CARD 0.3.1`). If that's older than the version you installed, refresh the
+- The card prints its version in the browser console (`INSTANT-ON-CARD 0.4.0`). If that's older than the version you installed, refresh the
   browser as above.
 
 Settings, entities and history are kept across updates. Nothing is reset unless the changelog says so.
@@ -176,6 +180,7 @@ type: custom:instant-on-card
 | `map` | Live network map, from the gateway through switches to APs, with link speeds and client counts. Swipe sideways on phones. |
 | `aps` | Each AP's radios: band, channel, width, airtime utilization, clients, transmit power |
 | `switches` | Port grids: link speed, uplinks, PoE (⚡). Hover a port for its peer, power and throughput. |
+| `clients` | Every client with its best name (and where the name came from), vendor, device type, AP or switch port, and IP. Filters: online, wireless, wired, named by lookup, recently seen. |
 | `talkers` | The busiest clients right now. Clients behind the same switch port are grouped, because the API reports port traffic for each of them. |
 
 The card uses a fixed dark "mission control" palette, whatever your Home Assistant theme. History sparklines fill in as Home Assistant records the sensors.
@@ -251,6 +256,32 @@ The device registry entry includes the model, SKU, serial number, firmware versi
 | `device_tracker.<client name>` | `home` / `not_home` | `ip`, `host_name`, `mac`, `connection` (wired/wireless), `deviceName` (AP or switch), `switch_port`, `wirelessBand`, `wirelessNetworkName`, `wiredNetworkName`, `signalQuality`, `snrInDb`, `health`, `stateDurationInSeconds` |
 
 You can assign these trackers to a **Person** for presence.
+
+## Client names
+
+Instant On often knows a client only by its MAC address, especially wired devices. The integration fills in the gaps, trying these
+sources in order and using the first that gives a real name:
+
+| # | Source | Example | Notes |
+|---|---|---|---|
+| 1 | Instant On | "Work laptop" | The name you or Instant On gave it |
+| 2 | Home Assistant | "Kitchen speaker" | A name another integration (Sonos, Cast…) gave a device with the same MAC |
+| 3 | mDNS | "Kitchen", "HP OfficeJet Pro 9010" | From Home Assistant's zeroconf cache. Matched by IP, or by the MAC that many devices put in their hostname (`Sonos-48A6B8…`, `HP64500D`). |
+| 4 | DHCP | "media-server" | The hostname from Instant On or Home Assistant's DHCP watcher |
+| 5 | Reverse DNS | "nas.home.lan" | Only if your router publishes names in DNS |
+| 6 | NetBIOS | "DESKTOP-4F2K" | Windows and Samba machines |
+| 7 | Vendor | "Sonos · 46:f2:67" | From the MAC prefix, with the last 3 bytes so similar devices stay distinguishable |
+| — | Private address | "Private address · 9a:bc:de" | Phones and laptops using a randomized Wi-Fi MAC have no vendor to look up |
+
+Every client also gets a **vendor** and a **device type** (speaker, camera, printer, TV, console, computer, Apple, phone, IoT), used for
+the card's icons and in the device tracker's attributes (`vendor`, `device_type`, `name_source`, and `mdns_name` / `dhcp_name` / … when found).
+
+- **Privacy:** MAC addresses never leave your network. The vendor database (Wireshark's `manuf`, about 3 MB) is downloaded whole from
+  wireshark.org once a month and looked up locally. mDNS, DNS and NetBIOS lookups only talk to devices and resolvers on your network.
+- **IP addresses for wired clients:** Instant On doesn't report them, and DNS and NetBIOS lookups need one. The integration takes IPs from
+  Home Assistant's DHCP watcher and the host's ARP table. If many wired clients still have no IP, turn on **Scan the local network…**: once an hour
+  it sends one tiny packet to each address on the Home Assistant host's subnet (/24 or smaller), which fills the ARP table.
+- **Timing:** names refresh in the background after each poll, and each client's network lookups at most every 6 hours. Results are cached across restarts.
 
 ## Example automations
 
@@ -329,6 +360,7 @@ actions:
 | The card's charts say **"collecting history…"** | The sensors are new. The charts fill in as Home Assistant records data, which takes a few polls. They show up to 24 hours. |
 | Speed test results look low | Check the **HA host link** line in the card's Internet section. A 100 Mb/s port, Wi-Fi or a busy Raspberry Pi caps the result. |
 | Latency is a few ms higher than `ping` | Expected: the integration times TCP connections because Home Assistant usually can't send ICMP pings. |
+| A client shows as "Sonos · 46:f2:67" instead of a room name | No better source answered yet. mDNS needs Home Assistant's zeroconf (on by default) and the device on the same network as Home Assistant. Names fill in over a few polls. |
 | A client in **Top talkers** says "+6 on port" | Several wired clients sit behind one switch port (for example behind an unmanaged switch or a Sonos system). The API reports the port's traffic for each of them, so the card shows them as one row. |
 | Some **client trackers are already enabled** | Home Assistant enables a tracker automatically when its MAC matches a device it already knows from another integration (Sonos, for example). Everything else starts disabled. |
 | A value looks wrong | Download diagnostics (integration card → three-dot menu → **Download diagnostics**) and open an issue with the file attached. |

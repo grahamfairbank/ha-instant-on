@@ -16,10 +16,11 @@ from homeassistant.helpers.typing import ConfigType
 
 from . import websocket
 from .api import InstantOnClient
-from .const import CONF_INTERNET, CONF_SHOW_PANEL, DOMAIN, PANEL_ICON, PANEL_TITLE, PANEL_URL_PATH
+from .const import CONF_ACTIVE_SCAN, CONF_INTERNET, CONF_NAME_LOOKUP, CONF_SHOW_PANEL, DOMAIN, PANEL_ICON, PANEL_TITLE, PANEL_URL_PATH
 from .coordinator import InstantOnCoordinator
 from .entity import site_device_info
 from .internet import InternetCoordinator
+from .names import ClientNamer
 
 CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
 CARD_URL = "/instant_on/instant-on-card.js"
@@ -73,6 +74,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: InstantOnConfigEntry) ->
     session = async_create_clientsession(hass)
     client = InstantOnClient(session, entry.data[CONF_USERNAME], entry.data[CONF_PASSWORD])
     coordinator = InstantOnCoordinator(hass, entry, client)
+    if entry.options.get(CONF_NAME_LOOKUP, True):
+        namer = ClientNamer(hass, entry.options.get(CONF_ACTIVE_SCAN, False), coordinator.async_update_listeners)
+        await namer.async_load()
+        coordinator.namer = namer
     await coordinator.async_config_entry_first_refresh()
     # Register site devices first so APs and switches can link to them by id.
     dev_reg = dr.async_get(hass)

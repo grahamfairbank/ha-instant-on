@@ -517,7 +517,8 @@
      "port": 6,
      "band": null,
      "down": 48200000,
-     "up": 2100000
+     "up": 2100000,
+     "kind": "computer"
     },
     {
      "name": "Work laptop",
@@ -527,7 +528,8 @@
      "port": null,
      "band": "5ghz",
      "down": 21400000,
-     "up": 6300000
+     "up": 6300000,
+     "kind": "apple"
     },
     {
      "name": "Living room TV",
@@ -537,7 +539,8 @@
      "port": 12,
      "band": null,
      "down": 14800000,
-     "up": 400000
+     "up": 400000,
+     "kind": "tv"
     },
     {
      "name": "Tablet",
@@ -547,7 +550,8 @@
      "port": null,
      "band": "5ghz",
      "down": 5100000,
-     "up": 300000
+     "up": 300000,
+     "kind": "apple"
     },
     {
      "name": "Doorbell camera",
@@ -557,7 +561,8 @@
      "port": null,
      "band": "2.4ghz",
      "down": 400000,
-     "up": 2900000
+     "up": 2900000,
+     "kind": "camera"
     }
    ],
    "entities": {
@@ -566,7 +571,175 @@
     "throughput_up": "sensor.demo_home_throughput_up",
     "health_score": "sensor.demo_home_health_score"
    },
-   "updated": null
+   "updated": null,
+   "client_list": [
+    {
+     "name": "Work laptop",
+     "source": "instant_on",
+     "vendor": "Apple",
+     "kind": "apple",
+     "mac": "02:11:22:33:44:01",
+     "ip": "192.0.2.21",
+     "hostnames": {},
+     "online": true,
+     "type": "wireless",
+     "via": "Living Room AP",
+     "port": null,
+     "band": "5ghz",
+     "signal": "good",
+     "down": null
+    },
+    {
+     "name": "Kitchen",
+     "source": "mdns",
+     "vendor": "Sonos",
+     "kind": "speaker",
+     "mac": "02:11:22:33:44:02",
+     "ip": "192.0.2.30",
+     "hostnames": {
+      "mdns": "Kitchen"
+     },
+     "online": true,
+     "type": "wired",
+     "via": "Core Switch",
+     "port": 12,
+     "band": null,
+     "signal": null,
+     "down": null
+    },
+    {
+     "name": "Living Room",
+     "source": "mdns",
+     "vendor": "Sonos",
+     "kind": "speaker",
+     "mac": "02:11:22:33:44:03",
+     "ip": "192.0.2.31",
+     "hostnames": {
+      "mdns": "Living Room"
+     },
+     "online": true,
+     "type": "wired",
+     "via": "Core Switch",
+     "port": 12,
+     "band": null,
+     "signal": null,
+     "down": null
+    },
+    {
+     "name": "HP OfficeJet Pro 9010",
+     "source": "mdns",
+     "vendor": "HP",
+     "kind": "printer",
+     "mac": "02:11:22:33:44:04",
+     "ip": "192.0.2.40",
+     "hostnames": {},
+     "online": true,
+     "type": "wired",
+     "via": "Office Switch",
+     "port": 3,
+     "band": null,
+     "signal": null,
+     "down": null
+    },
+    {
+     "name": "media-server",
+     "source": "dhcp",
+     "vendor": "Super Micro",
+     "kind": "computer",
+     "mac": "02:11:22:33:44:05",
+     "ip": "192.0.2.10",
+     "hostnames": {
+      "dhcp": "media-server"
+     },
+     "online": true,
+     "type": "wired",
+     "via": "Core Switch",
+     "port": 6,
+     "band": null,
+     "signal": null,
+     "down": null
+    },
+    {
+     "name": "Doorbell camera",
+     "source": "instant_on",
+     "vendor": "Reolink",
+     "kind": "camera",
+     "mac": "02:11:22:33:44:06",
+     "ip": "192.0.2.50",
+     "hostnames": {},
+     "online": true,
+     "type": "wireless",
+     "via": "Living Room AP",
+     "port": null,
+     "band": "2.4ghz",
+     "signal": "fair",
+     "down": null
+    },
+    {
+     "name": "Nintendo \u00b7 2f:76:54",
+     "source": "vendor",
+     "vendor": "Nintendo",
+     "kind": "console",
+     "mac": "02:11:22:33:44:07",
+     "ip": null,
+     "hostnames": {},
+     "online": true,
+     "type": "wired",
+     "via": "Core Switch",
+     "port": 13,
+     "band": null,
+     "signal": null,
+     "down": null
+    },
+    {
+     "name": "Withings \u00b7 01:2c:a0",
+     "source": "vendor",
+     "vendor": "Withings",
+     "kind": "iot",
+     "mac": "02:11:22:33:44:08",
+     "ip": "192.0.2.60",
+     "hostnames": {},
+     "online": true,
+     "type": "wireless",
+     "via": "Bedroom AP",
+     "port": null,
+     "band": "2.4ghz",
+     "signal": "good",
+     "down": null
+    },
+    {
+     "name": "Private address \u00b7 9a:bc:de",
+     "source": "random_mac",
+     "vendor": null,
+     "kind": null,
+     "mac": "06:11:22:9a:bc:de",
+     "ip": "192.0.2.70",
+     "hostnames": {},
+     "online": true,
+     "type": "wireless",
+     "via": "Bedroom AP",
+     "port": null,
+     "band": "5ghz",
+     "signal": "good",
+     "down": null
+    },
+    {
+     "name": "Tablet",
+     "source": "instant_on",
+     "vendor": "Apple",
+     "kind": "apple",
+     "mac": "02:11:22:33:44:09",
+     "ip": null,
+     "hostnames": {},
+     "online": false,
+     "type": "wireless",
+     "via": "Bedroom AP",
+     "port": null,
+     "band": "5ghz",
+     "signal": null,
+     "down": null
+    }
+   ]
   }
  ],
  "internet": {

@@ -66,6 +66,7 @@ The integration follows the standard Home Assistant **hub + coordinator** patter
 | `device_tracker.py` | One `ScannerEntity` per client MAC. New clients are added as they appear. Created disabled by default. |
 | `internet.py` | `InternetCoordinator`: internet health probes every 30 s, the speed test and its schedule, and `host_link()` (the HA host's own NIC). |
 | `button.py` | **Run speed test** button. |
+| `names.py` | `ClientNamer`: resolves and caches names, vendor and device type per client MAC. See [Client names](#client-names). |
 | `diagnostics.py` | Dumps the coordinator data with credentials and personal fields redacted. |
 | `frontend/instant-on-card.js` | The dashboard card (`instant-on-card`) and the sidebar panel (`instant-on-panel`): dependency-free web components, no build step. |
 
@@ -150,6 +151,37 @@ result is marked `capped` when the faster direction reaches 85% or more of the h
 `entities`). The card reads 24 h of latency and loss history and 7 days of status, download and upload history from the recorder. Uptime is the
 share of recorded time not `down`; the strip shows the worst state in each hour. **Run now** presses the button entity, then refreshes after
 15, 35 and 60 s.
+
+## Client names
+
+`ClientNamer` (`names.py`) runs when **Look up names for unnamed clients** is on. It's stored on `coordinator.namer`. After each successful poll,
+the coordinator calls `namer.schedule(clients)`, which starts a background refresh unless one is already running. When the refresh
+finishes, it saves the cache and calls `coordinator.async_update_listeners()`, so entities and the card pick up new names without waiting
+for the next poll.
+
+Per refresh:
+
+1. **Optional subnet sweep** (option off by default, at most hourly): one empty UDP datagram to port 9 on every host of the HA host's
+   directly connected IPv4 networks of /24 or smaller (Docker and HA-internal ranges are skipped), so the kernel ARPs them.
+2. **Bulk sources**, gathered in parallel:
+   - `/proc/net/arp`: MAC → IP
+   - `dhcp.async_get_address_data_internal()`: MAC → IP and hostname. This is an internal Home Assistant API, so it's wrapped and optional.
+   - Home Assistant's zeroconf cache: A records give host → IP, and SRV records give host → service instances (the friendly name is the part
+     after `@`, as Sonos uses). Indexed by IP, by a 12-hex-digit MAC found in the hostname, and by the last 6 hex digits when only one host has them.
+   - the device registry: names of other integrations' devices with a MAC connection, ignoring bare MACs and this integration's own devices.
+3. **Per client:** vendor from the OUI table (36-, 28- and 24-bit prefixes), whether the MAC is randomized (locally administered bit), IP
+   (Instant On, then DHCP, then ARP, then mDNS), then, at most every 6 h and 8 at a time, reverse DNS and a NetBIOS node-status query
+   (UDP 137), each with a 2 s timeout.
+
+`label(client)` picks the display name: Instant On name, then HA device name, mDNS, DHCP hostname, reverse DNS, NetBIOS, `"<vendor> · <last 3 bytes>"`,
+`"Private address · …"`, and finally the MAC. MAC-like strings are never accepted as names. Device type comes from mDNS service types first
+(`_sonos._tcp`, `_ipp._tcp`, …), then vendor keywords.
+
+**Vendor database:** `https://www.wireshark.org/download/automated/data/manuf.gz`, saved as `.storage/instant_on.manuf.gz` and re-downloaded
+when it's more than 30 days old. If the download fails, the cached copy is used. **Cache:** `.storage/instant_on.client_names`.
+
+`overview.build_site(..., label)` uses the labels for Top talkers and builds `client_list` (every client, online first) for the card's
+Clients section.
 
 ## Entities
 

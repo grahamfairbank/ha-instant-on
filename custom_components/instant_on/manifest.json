@@ -1,6 +1,10 @@
 {
   "domain": "instant_on",
   "name": "HPE Instant On (unofficial)",
+  "after_dependencies": [
+    "dhcp",
+    "zeroconf"
+  ],
   "codeowners": [
     "@grahamfairbank"
   ],
@@ -16,5 +20,5 @@
   "iot_class": "cloud_polling",
   "issue_tracker": "https://github.com/grahamfairbank/ha-instant-on/issues",
   "requirements": [],
-  "version": "0.3.1"
+  "version": "0.4.0"
 }

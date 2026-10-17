@@ -41,12 +41,16 @@
           "track_clients": "Create device trackers for clients",
           "show_panel": "Show the Network panel in the sidebar",
           "internet_health": "Monitor internet health",
-          "speedtest_hours": "Run a speed test every (hours, 0 = never)"
+          "speedtest_hours": "Run a speed test every (hours, 0 = never)",
+          "name_lookup": "Look up names for unnamed clients",
+          "active_scan": "Scan the local network to find wired clients' IP addresses"
         },
         "data_description": {
           "show_panel": "A full-screen view of the Instant On card. Turn off if you'd rather put the card on your own dashboard.",
           "internet_health": "Latency, packet loss, DNS and HTTPS checks from the Home Assistant host every 30 seconds, shown in the card's Internet section.",
-          "speedtest_hours": "Each test downloads about 25 MB and uploads about 8 MB. Results can't exceed the Home Assistant host's own network port (for example 100 Mb/s on many Raspberry Pis)."
+          "speedtest_hours": "Each test downloads about 25 MB and uploads about 8 MB. Results can't exceed the Home Assistant host's own network port (for example 100 Mb/s on many Raspberry Pis).",
+          "name_lookup": "Uses the MAC vendor (offline database), Home Assistant's device names, mDNS, DHCP, reverse DNS and NetBIOS. Nothing about your clients is sent outside your network.",
+          "active_scan": "Once an hour, sends one small packet to each address on the Home Assistant host's subnet so wired clients show up in its ARP table. Helps name wired devices; some security tools may notice it."
         }
       }
     }

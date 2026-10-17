@@ -28,7 +28,7 @@ def ws_overview(hass: HomeAssistant, connection: websocket_api.ActiveConnection,
             continue
         coordinator = entry.runtime_data
         for site_id, sd in (coordinator.data or {}).items():
-            site = build_site(sd.site, sd.clients, sd.inventory)
+            site = build_site(sd.site, sd.clients, sd.inventory, coordinator.namer.label if coordinator.namer else None)
             # Entity ids the card can pull history for.
             site["entities"] = {
                 key: ent_reg.async_get_entity_id("sensor", DOMAIN, f"{site_id}_{key}")

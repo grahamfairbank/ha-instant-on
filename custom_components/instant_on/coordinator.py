@@ -42,6 +42,7 @@ class InstantOnCoordinator(TimestampDataUpdateCoordinator[dict[str, SiteData]]):
         self.client = client
         self.site_device_ids: dict[str, str] = {}  # site id -> device registry id
         self.internet = None  # InternetCoordinator when internet health is on
+        self.namer = None  # ClientNamer when client name lookup is on
 
     async def _async_update_data(self) -> dict[str, SiteData]:
         wanted = set(self.config_entry.options.get(CONF_SITES) or self.config_entry.data.get(CONF_SITES, []))
@@ -61,6 +62,8 @@ class InstantOnCoordinator(TimestampDataUpdateCoordinator[dict[str, SiteData]]):
                     clients={m: c for c in clients if (m := client_mac(c))},
                     inventory=inventory,
                 )
+            if self.namer:
+                self.namer.schedule([c for sd in result.values() for c in sd.clients.values()])
             return result
         except InstantOnAuthError as err:
             raise ConfigEntryAuthFailed(str(err)) from err

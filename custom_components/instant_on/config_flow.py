@@ -13,7 +13,9 @@ import voluptuous as vol
 
 from .api import InstantOnAuthError, InstantOnClient, InstantOnError
 from .const import (
+    CONF_ACTIVE_SCAN,
     CONF_INTERNET,
+    CONF_NAME_LOOKUP,
     CONF_SCAN_INTERVAL,
     CONF_SHOW_PANEL,
     CONF_SITES,
@@ -135,6 +137,8 @@ class InstantOnOptionsFlow(OptionsFlow):
                     ): bool,
                     vol.Required(CONF_SHOW_PANEL, default=opts.get(CONF_SHOW_PANEL, True)): bool,
                     vol.Required(CONF_INTERNET, default=opts.get(CONF_INTERNET, True)): bool,
+                    vol.Required(CONF_NAME_LOOKUP, default=opts.get(CONF_NAME_LOOKUP, True)): bool,
+                    vol.Required(CONF_ACTIVE_SCAN, default=opts.get(CONF_ACTIVE_SCAN, False)): bool,
                     vol.Required(
                         CONF_SPEEDTEST_HOURS, default=opts.get(CONF_SPEEDTEST_HOURS, DEFAULT_SPEEDTEST_HOURS)
                     ): vol.All(vol.Coerce(int), vol.Range(min=0, max=168)),

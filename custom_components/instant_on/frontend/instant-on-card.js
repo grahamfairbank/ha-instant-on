@@ -4,15 +4,15 @@
  *
  *   type: custom:instant-on-card
  *   site: Home            # optional: site name or id (default: first site)
- *   sections: [header, internet, kpis, map, aps, switches, talkers]   # optional subset / order
+ *   sections: [header, internet, kpis, map, aps, switches, talkers, clients]   # optional subset / order
  *
  * The same file defines <instant-on-panel>, the built-in "Network" sidebar panel (panel_custom),
  * which shows the card full-screen.
  */
-const VERSION = "0.3.1";
+const VERSION = "0.4.0";
 const REFRESH_MS = 30000;
 const HISTORY_MS = 300000;
-const ALL_SECTIONS = ["header", "internet", "kpis", "map", "aps", "switches", "talkers"];
+const ALL_SECTIONS = ["header", "internet", "kpis", "map", "aps", "switches", "talkers", "clients"];
 
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const fmtRate = (bps) => {
@@ -42,6 +42,15 @@ const ICON = {
   accessPoint: '<circle cx="12" cy="16" r="1.6" fill="currentColor"/><path d="M8.5 12.5a5 5 0 0 1 7 0M5.5 9.5a9.2 9.2 0 0 1 13 0" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>',
   gateway: '<circle cx="12" cy="12" r="8" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M4 12h16M12 4c3 3.2 3 12.8 0 16M12 4c-3 3.2-3 12.8 0 16" fill="none" stroke="currentColor" stroke-width="1.3"/>',
   client: '<rect x="7" y="4" width="10" height="16" rx="2" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M11 17h2" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>',
+  speaker: '<rect x="6" y="3" width="12" height="18" rx="2.5" fill="none" stroke="currentColor" stroke-width="1.6"/><circle cx="12" cy="14" r="3.2" fill="none" stroke="currentColor" stroke-width="1.6"/><circle cx="12" cy="7.5" r="1" fill="currentColor"/>',
+  camera: '<rect x="3" y="7" width="13" height="10" rx="2" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M16 10.5l5-3v9l-5-3" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>',
+  printer: '<path d="M7 9V4h10v5" fill="none" stroke="currentColor" stroke-width="1.6"/><rect x="4" y="9" width="16" height="8" rx="2" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M7 14h10v6H7z" fill="none" stroke="currentColor" stroke-width="1.6"/>',
+  tv: '<rect x="3" y="5" width="18" height="12" rx="2" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M9 20h6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>',
+  console: '<path d="M7 8h10a4 4 0 0 1 4 4v1a3 3 0 0 1-5.2 2L14.5 14h-5l-1.3 1A3 3 0 0 1 3 13v-1a4 4 0 0 1 4-4z" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M8 10.5v3M6.5 12h3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>',
+  computer: '<rect x="3" y="4" width="18" height="12" rx="2" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M8 20h8M12 16v4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>',
+  apple: '<path d="M15.5 4.5c-.9 1-2 1.6-3 1.5-.1-1 .4-2.1 1.2-2.9.9-.8 2-1.2 2.9-1.2.1 1-.3 1.9-1.1 2.6zM12.4 7.3c1 0 2.2-.8 3.6-.7 1.3.1 2.4.7 3 1.7-2.6 1.6-2.2 5.3.5 6.4-.5 1.4-1.1 2.7-2 3.9-.8 1.1-1.7 2.1-2.9 2.1s-1.5-.7-2.9-.7-1.8.7-2.9.7c-1.2 0-2.1-1.1-2.9-2.2C2.7 15.4 2.6 11 4.6 8.8c.9-1 2.1-1.6 3.3-1.6 1.3 0 2.2.8 3.2.8" fill="none" stroke="currentColor" stroke-width="1.4"/>',
+  phone: '<rect x="7" y="3" width="10" height="18" rx="2.2" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M11 18h2" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>',
+  iot: '<rect x="7" y="7" width="10" height="10" rx="2" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M10 3v4M14 3v4M10 17v4M14 17v4M3 10h4M3 14h4M17 10h4M17 14h4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>',
 };
 const icon = (k, size = 18) => `<svg viewBox="0 0 24 24" width="${size}" height="${size}" aria-hidden="true">${ICON[k] || ICON.switch}</svg>`;
 
@@ -139,6 +148,17 @@ svg.spark{width:100%;height:64px;display:block;overflow:visible}
 .btn[disabled]{opacity:.5;cursor:default}
 .srow{display:flex;justify-content:space-between;gap:8px;padding:6px 0;border-top:1px solid var(--line);font-size:12px}
 .srow:first-of-type{border-top:0}
+.cfilters{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px}
+.cfilters button{font:inherit;font-size:11px;color:var(--dim);background:#0a111e;border:1px solid var(--line);border-radius:999px;padding:4px 10px;cursor:pointer}
+.cfilters button.on{color:var(--cyan);border-color:#3ee0ff66;background:#3ee0ff12}
+.crow{display:grid;grid-template-columns:22px minmax(0,1.5fr) minmax(0,1fr) minmax(0,1.1fr) 110px;gap:10px;align-items:center;padding:7px 0;border-top:1px solid var(--line);font-size:13px}
+.crow:first-of-type{border-top:0} .crow.off{opacity:.45}
+.crow .ic{color:var(--violet);display:flex} .crow .ic.wired{color:var(--cyan)}
+.crow .nm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.crow .sub{font-size:11px;color:var(--dim);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.src{font-size:9.5px;letter-spacing:.06em;text-transform:uppercase;border:1px solid var(--line);border-radius:4px;padding:0 4px;margin-left:6px;color:var(--dim);vertical-align:1px}
+.src.vendor,.src.random_mac,.src.mac{color:var(--amber);border-color:#ffc24a55}
+@container (max-width:700px){.crow{grid-template-columns:22px minmax(0,1fr) 92px}.crow .c3,.crow .c4{display:none}}
 `;
 
 class InstantOnCard extends HTMLElement {
@@ -228,7 +248,7 @@ class InstantOnCard extends HTMLElement {
       root.innerHTML = `<div class="empty">${this._error ? `Couldn't load Instant On data: ${esc(this._error)}` : "No Instant On site found. Is the integration set up?"}</div>`;
       return;
     }
-    const parts = { header: () => this._header(s), internet: () => this._internet(), kpis: () => this._kpis(s), map: () => this._map(s), aps: null, switches: null, talkers: () => this._talkers(s) };
+    const parts = { header: () => this._header(s), internet: () => this._internet(), kpis: () => this._kpis(s), map: () => this._map(s), aps: null, switches: null, talkers: () => this._talkers(s), clients: () => this._clients(s) };
     const secs = this._config.sections;
     let html = "";
     for (let i = 0; i < secs.length; i++) {
@@ -246,6 +266,9 @@ class InstantOnCard extends HTMLElement {
     requestAnimationFrame(() => root.querySelectorAll(".arc[data-off]").forEach((a) => a.setAttribute("stroke-dashoffset", a.dataset.off)));
     const btn = root.querySelector("#speedbtn");
     if (btn) btn.addEventListener("click", () => this._runSpeedtest());
+    root.querySelectorAll("[data-cf]").forEach((b) => b.addEventListener("click", () => { this._cfilter = b.dataset.cf; this._cshowall = false; this._render(); }));
+    const more = root.querySelector("[data-cshow]");
+    if (more) more.addEventListener("click", () => { this._cshowall = !this._cshowall; this._render(); });
   }
 
   _status(s) {
@@ -489,12 +512,37 @@ class InstantOnCard extends HTMLElement {
         <span><i style="border-color:var(--cyan)"></i>uplink</span><span>⚡ PoE</span><span><i style="border-color:var(--line)"></i>no link</span></div></div>`;
   }
 
+  _clients(s) {
+    const all = s.client_list || [];
+    if (!all.length) return "";
+    const f = this._cfilter || "online";
+    const filters = { online: (c) => c.online, wireless: (c) => c.online && c.type === "wireless", wired: (c) => c.online && c.type === "wired",
+      lookedup: (c) => !["instant_on", "home_assistant"].includes(c.source), offline: (c) => !c.online, all: () => true };
+    const labels = { online: "Online", wireless: "Wireless", wired: "Wired", lookedup: "Named by lookup", offline: "Recently seen", all: "All" };
+    const rows = all.filter(filters[f] || filters.online);
+    const limit = this._cshowall ? rows.length : 15;
+    const srcName = { instant_on: "", home_assistant: "HA", mdns: "mDNS", dhcp: "DHCP", dns: "DNS", netbios: "NetBIOS", vendor: "vendor", random_mac: "private", mac: "MAC" };
+    return `<div class="panel"><h3><span>Clients</span><span class="mono">${all.filter((c) => c.online).length} online · ${all.length} known</span></h3>
+      <div class="cfilters">${Object.keys(filters).map((k) => `<button data-cf="${k}" class="${k === f ? "on" : ""}">${labels[k]} <span class="mono">${all.filter(filters[k]).length}</span></button>`).join("")}</div>
+      ${rows.slice(0, limit).map((c) => {
+        const tip = [c.mac, c.vendor, ...Object.entries(c.hostnames || {}).map(([k, v]) => `${k}: ${v}`)].filter(Boolean).join(" · ");
+        const src = srcName[c.source] || "";
+        return `<div class="crow ${c.online ? "" : "off"}" title="${esc(tip)}"><span class="ic ${c.type}">${icon(c.kind || (c.type === "wireless" ? "client" : "switch"), 16)}</span>
+          <div class="nm">${esc(c.name)}${src ? `<span class="src ${c.source}">${src}</span>` : ""}<div class="sub mono">${esc(c.mac || "")}</div></div>
+          <div class="c3"><div class="nm small">${esc(c.vendor || "—")}</div><div class="sub">${esc(c.kind || "")}</div></div>
+          <div class="c4"><div class="nm small">${esc(c.via || "")}${c.port ? ` · port ${c.port}` : c.band ? ` · ${band(c.band)}` : ""}</div><div class="sub">${c.signal ? `signal ${esc(c.signal)}` : c.type}</div></div>
+          <div class="mono small" style="text-align:right">${esc(c.ip || "—")}</div></div>`;
+      }).join("")}
+      ${rows.length > 15 ? `<div style="text-align:center;margin-top:10px"><button class="btn" data-cshow="1">${this._cshowall ? "Show fewer" : `Show all ${rows.length}`}</button></div>` : ""}
+    </div>`;
+  }
+
   _talkers(s) {
     const t = (s.top_clients || []).filter((c) => c.down + c.up > 0);
     if (!t.length) return "";
     const max = Math.max(...t.map((c) => c.down + c.up), 1);
     return `<div class="panel"><h3>Top talkers <span>right now</span></h3>
-      ${t.map((c) => `<div class="talk"><span class="ic">${icon(c.type === "wireless" ? "client" : "switch", 16)}</span>
+      ${t.map((c) => `<div class="talk"><span class="ic">${icon(c.kind || (c.type === "wireless" ? "client" : "switch"), 16)}</span>
         <div class="nm">${esc(c.name)}${c.others ? ` <span class="dim">+${c.others} on port</span>` : ""}<div class="small dim">${esc(c.via || "")}${c.port ? ` · port ${c.port}` : ""}${c.band ? ` · ${band(c.band)}` : ""}</div></div>
         <div><div class="bar" style="height:6px"><i style="width:${((c.down + c.up) / max) * 100}%;background:linear-gradient(90deg,var(--green),var(--cyan))"></i></div></div>
         <div class="r mono small"><span style="color:var(--green)">↓ ${rate(c.down)}</span><br><span style="color:var(--violet)">↑ ${rate(c.up)}</span></div></div>`).join("")}</div>`;

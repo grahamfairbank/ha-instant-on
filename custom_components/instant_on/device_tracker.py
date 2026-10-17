@@ -66,6 +66,8 @@ class ClientTracker(InstantOnEntity, ScannerEntity):
 
     @property
     def name(self) -> str:
+        if self.coordinator.namer:
+            return self.coordinator.namer.label(self._client or self._last or {"macAddress": self._mac})["name"]
         return client_name(self._client or self._last) or self._mac
 
     @property
@@ -85,6 +87,13 @@ class ClientTracker(InstantOnEntity, ScannerEntity):
         c = self._client or self._last
         attrs = {"connection": "wireless" if is_wireless(c) else "wired"}
         attrs.update({k: c[k] for k in _ATTRS if c.get(k) is not None})
+        if self.coordinator.namer and c:
+            lab = self.coordinator.namer.label(c)
+            attrs.update({k: v for k, v in (("vendor", lab["vendor"]), ("device_type", lab["kind"]), ("name_source", lab["source"]),
+                                             ("private_mac", lab["random_mac"] or None)) if v})
+            attrs.update({f"{k}_name": v for k, v in lab["hostnames"].items()})
+            if lab["ip"] and not c.get("ipAddress"):
+                attrs["ip_discovered"] = lab["ip"]
         if ports := c.get("connectedToPorts"):
             attrs["switch_port"] = f"{ports[0].get('deviceName')} port {ports[0].get('portName')}"
         return attrs
