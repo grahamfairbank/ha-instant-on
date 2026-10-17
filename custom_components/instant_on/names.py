@@ -338,7 +338,7 @@ class ClientNamer:
             d = dhcp.get(mac.replace(":", "")) or dhcp.get(mac) or {}
             info.dhcp = d.get("hostname") or info.dhcp
             info.ip = client.get("ipAddress") or d.get("ip") or arp.get(mac) or info.ip
-            # mDNS: by IP, or by the MAC embedded in the hostname (Sonos-48A6B8xxxxxx, shelly1-AABBCC…).
+            # mDNS: by IP, or by the MAC embedded in the hostname (Sonos-0011AAxxxxxx, shelly1-AABBCC…).
             flat = mac.replace(":", "")
             tail_hits = [c for c in clients if (client_mac(c) or "").replace(":", "")[-6:] == flat[-6:]]
             m = (
@@ -415,7 +415,7 @@ class ClientNamer:
             flat = host.replace("-", "")
             for m in re.findall(r"[0-9a-f]{12}", flat):
                 by_mac[m] = entry
-            # Many devices use only the MAC's last 6 hex digits (e.g. HP64500D.local).
+            # Many devices use only the MAC's last 6 hex digits (e.g. HPA1B2C3.local).
             for m in set(re.findall(r"(?=([0-9a-f]{6}))", flat.split(".")[0])):
                 by_tail.setdefault(m, []).append(entry)
         return {"by_ip": by_ip, "by_mac": by_mac, "by_tail": {k: v[0] for k, v in by_tail.items() if len(v) == 1}}

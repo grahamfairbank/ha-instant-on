@@ -266,11 +266,11 @@ sources in order and using the first that gives a real name:
 |---|---|---|---|
 | 1 | Instant On | "Work laptop" | The name you or Instant On gave it |
 | 2 | Home Assistant | "Kitchen speaker" | A name another integration (Sonos, Cast…) gave a device with the same MAC |
-| 3 | mDNS | "Kitchen", "HP OfficeJet Pro 9010" | From Home Assistant's zeroconf cache. Matched by IP, or by the MAC that many devices put in their hostname (`Sonos-48A6B8…`, `HP64500D`). |
+| 3 | mDNS | "Kitchen", "HP OfficeJet Pro 9010" | From Home Assistant's zeroconf cache. Matched by IP, or by the MAC that many devices put in their hostname (`Sonos-48A6B8…`, `HPA1B2C3`). |
 | 4 | DHCP | "media-server" | The hostname from Instant On or Home Assistant's DHCP watcher |
 | 5 | Reverse DNS | "nas.home.lan" | Only if your router publishes names in DNS |
 | 6 | NetBIOS | "DESKTOP-4F2K" | Windows and Samba machines |
-| 7 | Vendor | "Sonos · 46:f2:67" | From the MAC prefix, with the last 3 bytes so similar devices stay distinguishable |
+| 7 | Vendor | "Sonos · 12:34:56" | From the MAC prefix, with the last 3 bytes so similar devices stay distinguishable |
 | — | Private address | "Private address · 9a:bc:de" | Phones and laptops using a randomized Wi-Fi MAC have no vendor to look up |
 
 Every client also gets a **vendor** and a **device type** (speaker, camera, printer, TV, console, computer, Apple, phone, IoT), used for
@@ -360,7 +360,7 @@ actions:
 | The card's charts say **"collecting history…"** | The sensors are new. The charts fill in as Home Assistant records data, which takes a few polls. They show up to 24 hours. |
 | Speed test results look low | Check the **HA host link** line in the card's Internet section. A 100 Mb/s port, Wi-Fi or a busy Raspberry Pi caps the result. |
 | Latency is a few ms higher than `ping` | Expected: the integration times TCP connections because Home Assistant usually can't send ICMP pings. |
-| A client shows as "Sonos · 46:f2:67" instead of a room name | No better source answered yet. mDNS needs Home Assistant's zeroconf (on by default) and the device on the same network as Home Assistant. Names fill in over a few polls. |
+| A client shows as "Sonos · 12:34:56" instead of a room name | No better source answered yet. mDNS needs Home Assistant's zeroconf (on by default) and the device on the same network as Home Assistant. Names fill in over a few polls. |
 | A client in **Top talkers** says "+6 on port" | Several wired clients sit behind one switch port (for example behind an unmanaged switch or a Sonos system). The API reports the port's traffic for each of them, so the card shows them as one row. |
 | Some **client trackers are already enabled** | Home Assistant enables a tracker automatically when its MAC matches a device it already knows from another integration (Sonos, for example). Everything else starts disabled. |
 | A value looks wrong | Download diagnostics (integration card → three-dot menu → **Download diagnostics**) and open an issue with the file attached. |
