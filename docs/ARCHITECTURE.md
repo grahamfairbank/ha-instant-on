@@ -59,6 +59,7 @@ The integration follows the standard Home Assistant **hub + coordinator** patter
 | `__init__.py` | `async_setup` registers the websocket command, serves the card file and adds it to every frontend page. `async_setup_entry` creates the client and coordinator, registers a device for each site, sets up the platforms, then adds or removes the Network sidebar panel. |
 | `config_flow.py` | `user` step (credentials) → `sites` step (multi-select), `reauth_confirm`, and the options flow. |
 | `entity.py` | `InstantOnEntity` base class and `DeviceInfo` builders for sites and network devices. |
+| `inventory.py` | `complete_inventory()`: adds devices that the inventory's `metaData…siteDevices` lists but its `elements` omit, using switch-port and client data for uplink and radios. No Home Assistant imports. |
 | `overview.py` | Pure function `build_site()` that turns raw API data into the compact snapshot the card draws, and `talkers()` / `site_throughput()`, which count each switch port once. No Home Assistant imports. |
 | `websocket.py` | `instant_on/overview` command: builds a snapshot for every site of every loaded entry, adding the entity IDs the card needs for history. |
 | `sensor.py` | Site sensors (`SiteSensor`) and per-device sensors (`DeviceSensor`), defined with entity descriptions and `value_fn`s. |
@@ -105,7 +106,7 @@ Each update (default every 60 s, configurable from 30 to 3600 s):
 GET /api/sites/                              -> filter to selected site IDs
 for each site (sites in sequence; the two calls per site in parallel):
     GET /api/sites/{id}/clientSummary        -> SiteData.clients  (dict keyed by lower-case MAC)
-    GET /api/sites/{id}/inventory            -> SiteData.inventory
+    GET /api/sites/{id}/inventory            -> SiteData.inventory (plus devices only listed in metaData.siteDevices)
 ```
 
 `coordinator.data` is `dict[site_id, SiteData]`, where `SiteData.site` is the raw site record. The site record already includes

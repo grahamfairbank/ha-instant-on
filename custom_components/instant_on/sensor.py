@@ -142,8 +142,10 @@ DEVICE_SENSORS = (
     DeviceSensorDescription(
         key="channel_utilization", translation_key="channel_utilization",
         native_unit_of_measurement=PERCENTAGE, state_class=SensorStateClass.MEASUREMENT,
-        exists_fn=lambda dev: bool(dev.get("radios")),
-        value_fn=lambda dev, sd: max((r.get("utilizationPercent") or 0 for r in dev.get("radios") or []), default=None),
+        exists_fn=lambda dev: any(r.get("utilizationPercent") is not None for r in dev.get("radios") or []),
+        value_fn=lambda dev, sd: max(
+            (r["utilizationPercent"] for r in dev.get("radios") or [] if r.get("utilizationPercent") is not None), default=None
+        ),
     ),
     DeviceSensorDescription(
         key="poe_power", translation_key="poe_power",

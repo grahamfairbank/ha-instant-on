@@ -135,6 +135,11 @@ present but unused.
 
 ## Quirks
 
+- **The inventory can leave devices out.** On one site, `/inventory` returned 6 devices with `totalCount: 6` while an adopted, online AP-515
+  served 23 clients. That AP was still listed in `metaData.networkScopes[].ipReservationInfo.siteDevices` (fields: `id`, `name`, `model`,
+  `macAddress`, `ipAddress`, `isOnline`, `ipAssignmentScheme`, `hasActiveLease`), as the switch port's `directlyConnectedDeviceId`, and as
+  clients' `deviceId`. `siteDevices` appears to be the complete device list; the integration merges it in (`inventory.complete_inventory`).
+
 - **Wired client throughput is per port, not per client.** A wired client's throughput fields (top-level and `dataTraffic`) repeat the
   throughput of the switch port it's behind. On the test site, 7 clients behind one port each reported the same 23.2 Mb/s.
   To total traffic, group wired clients by `connectedToPorts[0].deviceId` and `portNumber` (see `overview.talkers()`).

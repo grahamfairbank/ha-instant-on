@@ -174,8 +174,12 @@ class InstantOnClient:
     async def get_clients(self, site_id: str) -> list[dict[str, Any]]:
         return await self._elements(f"/api/sites/{site_id}/clientSummary")
 
-    async def get_inventory(self, site_id: str) -> list[dict[str, Any]]:
-        return await self._elements(f"/api/sites/{site_id}/inventory")
+    async def get_inventory(self, site_id: str) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+        """Inventory elements and the response's metaData (which lists every site device)."""
+        data = await self._get(f"/api/sites/{site_id}/inventory")
+        if isinstance(data, dict):
+            return data.get("elements", []), data.get("metaData") or {}
+        return data or [], {}
 
     async def get_alerts(self, site_id: str) -> list[dict[str, Any]]:
         return await self._elements(f"/api/sites/{site_id}/alerts")

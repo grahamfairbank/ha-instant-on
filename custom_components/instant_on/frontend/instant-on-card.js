@@ -9,7 +9,7 @@
  * The same file defines <instant-on-panel>, the built-in "Network" sidebar panel (panel_custom),
  * which shows the card full-screen.
  */
-const VERSION = "0.4.0";
+const VERSION = "0.4.1";
 const REFRESH_MS = 30000;
 const HISTORY_MS = 300000;
 const ALL_SECTIONS = ["header", "internet", "kpis", "map", "aps", "switches", "talkers", "clients"];
@@ -33,6 +33,7 @@ const ago = (iso) => {
   const s = Math.max(0, Math.round((Date.now() - Date.parse(iso)) / 1000));
   return s < 60 ? `${s}s ago` : s < 3600 ? `${Math.round(s / 60)}m ago` : `${Math.round(s / 3600)}h ago`;
 };
+const plural = (n, one, many = one + "s") => `${n} ${n === 1 ? one : many}`;
 const band = (b) => ({ "2.4ghz": "2.4 GHz", "5ghz": "5 GHz", "6ghz": "6 GHz" }[b] || b || "");
 const speed = (s) => ({ mbps10: "10M", mbps100: "100M", mbps1000: "1G", mbps2500: "2.5G", mbps5000: "5G", mbps10000: "10G" }[s] || "");
 const utilColor = (u) => (u >= 70 ? "var(--red)" : u >= 40 ? "var(--amber)" : "var(--green)");
@@ -479,10 +480,11 @@ class InstantOnCard extends HTMLElement {
     };
     nodes += node(GW, "gateway", s.gateway || "Gateway", "internet uplink");
     for (const d of devs) {
-      const sub = d.type === "accessPoint" && d.radios ? d.radios.map((r) => `ch ${r.channel}`).join(" · ") : `${d.model || ""}${d.ports ? ` · ${d.ports.filter((p) => p.up).length}/${d.ports.length} up` : ""}`;
+      const chans = (d.radios || []).filter((r) => r.channel != null).map((r) => `ch ${r.channel}`);
+      const sub = d.type === "accessPoint" && chans.length ? chans.join(" · ") : `${d.model || ""}${d.partial && d.uplink_port ? ` · port ${d.uplink_port}` : ""}${d.ports ? ` · ${d.ports.filter((p) => p.up).length}/${d.ports.length} up` : ""}`;
       nodes += node(d.id, d.type, d.name, sub, d.online, d.clients);
     }
-    return `<div class="panel"><h3>Network map <span>${devs.filter((d) => d.type === "switch").length} switches · ${devs.filter((d) => d.type === "accessPoint").length} access points</span></h3>
+    return `<div class="panel"><h3>Network map <span>${plural(devs.filter((d) => d.type === "switch").length, "switch", "switches")} · ${plural(devs.filter((d) => d.type === "accessPoint").length, "access point")}</span></h3>
       <div class="mapwrap"><svg class="map" viewBox="0 0 ${W} ${H}" style="max-height:${H * 1.15}px;min-width:${Math.round(W * 0.72)}px">${links}${nodes}</svg></div></div>`;
   }
 
@@ -491,10 +493,10 @@ class InstantOnCard extends HTMLElement {
     if (!aps.length) return "";
     return `<div class="panel"><h3>Access points <span class="mono">${aps.reduce((a, d) => a + d.clients, 0)} clients</span></h3>
       ${aps.map((d) => `<div class="ap"><div class="t"><span class="ic">${icon("accessPoint", 18)}</span><b class="grow">${esc(d.name)}</b>
-        <span class="small dim mono">${esc(d.model || "")} · up ${fmtUptime(d.uptime)}</span><span class="dot ${d.online ? "" : "bad"}"></span></div>
-        ${(d.radios || []).map((r) => `<div class="radio"><div><b>${band(r.band)}</b><div class="meta mono">ch ${r.channel} · ${String(r.width || "").replace("mhz", "")}</div></div>
-          <div><div class="bar"><i style="width:${Math.max(2, r.util || 0)}%;background:${utilColor(r.util || 0)};box-shadow:0 0 8px ${utilColor(r.util || 0)}"></i></div>
-          <div class="meta mono" style="margin-top:4px">${r.util ?? 0}% airtime · ${r.clients ?? 0} clients${r.power ? ` · ${r.power} dBm` : ""}</div></div>
+        <span class="small dim mono">${esc(d.model || "")}${d.partial ? ` · <span title="Instant On's inventory leaves this device out, so channel, airtime, uptime and firmware aren't available">limited data</span>` : ` · up ${fmtUptime(d.uptime)}`}</span><span class="dot ${d.online ? "" : "bad"}"></span></div>
+        ${(d.radios || []).map((r) => `<div class="radio"><div><b>${band(r.band)}</b><div class="meta mono">${r.channel == null ? "ch —" : `ch ${r.channel} · ${String(r.width || "").replace("mhz", "")}`}</div></div>
+          <div><div class="bar"><i style="width:${r.util == null ? 0 : Math.max(2, r.util)}%;background:${utilColor(r.util || 0)};box-shadow:0 0 8px ${utilColor(r.util || 0)}"></i></div>
+          <div class="meta mono" style="margin-top:4px">${r.util == null ? "airtime n/a" : `${r.util}% airtime`} · ${r.clients ?? 0} clients${r.power ? ` · ${r.power} dBm` : ""}</div></div>
           <div class="mono" style="text-align:right;font-size:15px;font-weight:700">${r.clients ?? 0}</div></div>`).join("")}</div>`).join("")}</div>`;
   }
 

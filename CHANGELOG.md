@@ -5,6 +5,17 @@ and versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.4.1] - 2026-10-17
+
+### Fixed
+- **Devices missing from the inventory now show up.** On some sites, Instant On's inventory leaves out an adopted, online device
+  (seen with an AP-515 serving 23 clients) while its `totalCount` agrees with the shorter list. The integration now adds any device
+  listed in the inventory response's site device list (`metaData…siteDevices`) but missing from the main list. Name, model, online
+  state and IP come from that list, the switch port and PoE from the switch, and radios and client counts from the clients. The card marks
+  these devices **limited data**, and the log notes each one once.
+- Channel utilization sensors are no longer created for devices that don't report airtime.
+- The map header says "1 switch" instead of "1 switches".
+
 ## [0.4.0] - 2026-10-17
 
 ### Added

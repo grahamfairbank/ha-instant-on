@@ -2,7 +2,7 @@
 
 [![HACS Custom](https://img.shields.io/badge/HACS-Custom-41BDF5.svg)](https://hacs.xyz/docs/faq/custom_repositories)
 [![Validate](https://github.com/grahamfairbank/ha-instant-on/actions/workflows/validate.yml/badge.svg)](https://github.com/grahamfairbank/ha-instant-on/actions/workflows/validate.yml)
-![Version](https://img.shields.io/badge/version-0.4.0-blue)
+![Version](https://img.shields.io/badge/version-0.4.1-blue)
 
 An **unofficial, read-only** Home Assistant integration for **HPE Aruba Networking Instant On** access points and switches.
 It polls the same cloud API the Instant On web portal uses, so you get presence detection for every client on your network, plus
@@ -157,7 +157,7 @@ restart. Your settings and entities are kept.
 ### Which version am I running?
 
 - **HACS** shows the installed version on the integration's HACS page.
-- The card prints its version in the browser console (`INSTANT-ON-CARD 0.4.0`). If that's older than the version you installed, refresh the
+- The card prints its version in the browser console (`INSTANT-ON-CARD 0.4.1`). If that's older than the version you installed, refresh the
   browser as above.
 
 Settings, entities and history are kept across updates. Nothing is reset unless the changelog says so.
@@ -361,6 +361,7 @@ actions:
 | Speed test results look low | Check the **HA host link** line in the card's Internet section. A 100 Mb/s port, Wi-Fi or a busy Raspberry Pi caps the result. |
 | Latency is a few ms higher than `ping` | Expected: the integration times TCP connections because Home Assistant usually can't send ICMP pings. |
 | A client shows as "Sonos · 12:34:56" instead of a room name | No better source answered yet. mDNS needs Home Assistant's zeroconf (on by default) and the device on the same network as Home Assistant. Names fill in over a few polls. |
+| An AP or switch shows **"limited data"** | Instant On's inventory left it out, so the integration added it from the site's device list. Name, model, online state, switch port and clients are shown; channel, airtime, uptime and firmware aren't available. The log says which device. |
 | A client in **Top talkers** says "+6 on port" | Several wired clients sit behind one switch port (for example behind an unmanaged switch or a Sonos system). The API reports the port's traffic for each of them, so the card shows them as one row. |
 | Some **client trackers are already enabled** | Home Assistant enables a tracker automatically when its MAC matches a device it already knows from another integration (Sonos, for example). Everything else starts disabled. |
 | A value looks wrong | Download diagnostics (integration card → three-dot menu → **Download diagnostics**) and open an issue with the file attached. |

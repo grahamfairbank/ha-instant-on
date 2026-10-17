@@ -29,6 +29,8 @@ def _device(dev: dict[str, Any], clients_by_dev: dict[str, int]) -> dict[str, An
         "firmware": dev.get("currentFirmwareVersion") or dev.get("deviceSoftwareVersion"),
         "up_to_date": dev.get("isUpToDate"),
         "clients": clients_by_dev.get(dev.get("id"), 0),
+        "partial": bool(dev.get("partial")),
+        "uplink_port": dev.get("uplinkPort"),
     }
     if radios := dev.get("radios"):
         out["radios"] = [
