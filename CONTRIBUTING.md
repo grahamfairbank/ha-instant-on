@@ -79,6 +79,14 @@ The card is one plain JavaScript file, `custom_components/instant_on/frontend/in
 
 ## Releasing
 
-1. Bump `version` in `custom_components/instant_on/manifest.json`.
-2. Move the **Unreleased** changelog entries under the new version.
-3. Tag `vX.Y.Z` and create a GitHub release. HACS picks up releases automatically.
+1. Bump `version` in `custom_components/instant_on/manifest.json`, and `VERSION` at the top of `frontend/instant-on-card.js`.
+2. Move the **Unreleased** changelog entries under the new version, and update the version badge in the README.
+3. Commit and push, then tag and push the tag:
+
+   ```bash
+   git tag -a vX.Y.Z -m "vX.Y.Z"
+   git push origin vX.Y.Z
+   ```
+
+4. On GitHub: **Releases → Draft a new release**, choose the tag, set the title to the version, paste that version's changelog section, then **Publish release**.
+   HACS offers the update to users from this release; a tag alone isn't enough.

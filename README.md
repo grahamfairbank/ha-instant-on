@@ -24,7 +24,9 @@ the online status of each AP and switch and the health of each site.
 - [Step 2: install](#step-2-install)
 - [Step 3: configure](#step-3-configure)
 - [Step 4: open the Network view](#step-4-open-the-network-view)
+- [Updating](#updating)
 - [Dashboard card](#dashboard-card)
+- [Internet health](#internet-health)
 - [Entities](#entities)
 - [Example automations](#example-automations)
 - [Troubleshooting](#troubleshooting)
@@ -122,6 +124,39 @@ Use this if you've hidden the panel, want the card next to other cards, or want 
    In a **Sections** view, make the card full width instead.
 4. Click **Add card** → scroll to **Manual** (or search for "Instant On") → paste the YAML below → **Save**.
 5. Click **Done**.
+
+## Updating
+
+New versions are published as [GitHub releases](https://github.com/grahamfairbank/ha-instant-on/releases). Read the
+[changelog](CHANGELOG.md) before updating; it lists anything you need to do.
+
+### If you installed with HACS
+
+1. HACS checks for updates on its own. When there's a new version, **HPE Instant On** appears under **Settings → Updates**
+   (and in HACS with an **Update** badge). To check straight away: HACS → three-dot menu → **Reload data** (or open the integration and
+   choose **Update information**).
+2. Click **Update** (in Settings → Updates, or HACS → HPE Instant On → **Download**). Pick the latest version if asked.
+3. **Restart Home Assistant:** Settings → System → top-right power menu → **Restart Home Assistant**. Home Assistant only loads the new
+   code after a restart. A repair notice may remind you.
+4. **Refresh your browser** (Ctrl+Shift+R, or Cmd+Shift+R on a Mac). On the companion app: **Settings → Companion app → Debugging → Reset frontend cache**.
+   Without this, the page can keep showing the old card even though the new version is installed.
+
+### If you installed manually
+
+1. Download the release's source code (or `git pull`) and copy its `custom_components/instant_on` folder over
+   `/config/custom_components/instant_on`, replacing every file. Delete the old folder first if files were removed in the new version.
+2. Restart Home Assistant and refresh your browser, as in steps 3 and 4 above.
+
+To switch from a manual install to HACS (so you get update notices), install the same version through HACS, which replaces the folder, then
+restart. Your settings and entities are kept.
+
+### Which version am I running?
+
+- **HACS** shows the installed version on the integration's HACS page.
+- The card prints its version in the browser console (`INSTANT-ON-CARD 0.3.0`). If that's older than the version you installed, refresh the
+  browser as above.
+
+Settings, entities and history are kept across updates. Nothing is reset unless the changelog says so.
 
 ## Dashboard card
 
