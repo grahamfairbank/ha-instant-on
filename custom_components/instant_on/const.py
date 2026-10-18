@@ -12,6 +12,7 @@ CONF_INTERNET = "internet_health"
 CONF_SPEEDTEST_HOURS = "speedtest_hours"
 DEFAULT_SPEEDTEST_HOURS = 6  # 0 turns scheduled speed tests off
 CONF_NAME_LOOKUP = "name_lookup"
+CONF_ACCEPT_RISK = "accept_risk"
 CONF_ACTIVE_SCAN = "active_scan"
 
 PANEL_URL_PATH = "instant-on"

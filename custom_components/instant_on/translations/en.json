@@ -3,10 +3,11 @@
     "step": {
       "user": {
         "title": "HPE Instant On",
-        "description": "Use a dedicated Instant On account with MFA disabled and view-only access to your site(s).",
+        "description": "This integration uses an unofficial Instant On API that HPE doesn't publish or support. Using it may conflict with the HPE Networking Instant On Terms of Service, and HPE may suspend the account you use. Use a dedicated, view-only account with MFA turned off, never your administrator account.",
         "data": {
           "username": "Email",
-          "password": "Password"
+          "password": "Password",
+          "accept_risk": "I understand and accept the risk"
         }
       },
       "sites": {
@@ -26,7 +27,8 @@
       "invalid_auth": "Login failed. Check credentials and make sure MFA is disabled on this account.",
       "cannot_connect": "Could not reach the Instant On cloud.",
       "no_sites": "This account has no sites. Invite it to a site first.",
-      "unknown": "Unexpected error."
+      "unknown": "Unexpected error.",
+      "accept_risk": "Please confirm you understand the risks of using an unofficial API."
     },
     "abort": {
       "already_configured": "This account is already configured.",

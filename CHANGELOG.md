@@ -5,6 +5,15 @@ and versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.4.2] - 2026-10-18
+
+### Added
+- Setup now requires ticking **I understand and accept the risk**, after a short explanation that the API is unofficial,
+  may conflict with the HPE Networking Instant On Terms of Service, and that HPE may suspend the account used. Existing installations
+  aren't affected.
+- README: a clearer warning at the top and a **Terms of Service and risks** section quoting the relevant clauses, what the
+  integration does to keep the impact low, and what could happen.
+
 ## [0.4.1] - 2026-10-17
 
 ### Fixed

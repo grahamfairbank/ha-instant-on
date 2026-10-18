@@ -2,7 +2,7 @@
 
 [![HACS Custom](https://img.shields.io/badge/HACS-Custom-41BDF5.svg)](https://hacs.xyz/docs/faq/custom_repositories)
 [![Validate](https://github.com/grahamfairbank/ha-instant-on/actions/workflows/validate.yml/badge.svg)](https://github.com/grahamfairbank/ha-instant-on/actions/workflows/validate.yml)
-![Version](https://img.shields.io/badge/version-0.4.1-blue)
+![Version](https://img.shields.io/badge/version-0.4.2-blue)
 
 An **unofficial, read-only** Home Assistant integration for **HPE Aruba Networking Instant On** access points and switches.
 It polls the same cloud API the Instant On web portal uses, so you get presence detection for every client on your network, plus
@@ -11,8 +11,10 @@ the online status of each AP and switch and the health of each site.
 ![The instant-on-card dashboard, shown with made-up sample data](docs/images/instant-on-card.png)
 
 > [!WARNING]
-> This integration uses an **undocumented** API that HPE does not support. It can break without notice.
-> It is not affiliated with or endorsed by HPE.
+> **Unofficial and unsupported.** This integration uses the private API behind the Instant On web portal. HPE doesn't
+> publish or permit this API, and using it likely conflicts with the [Instant On Terms of Service](https://instant-on.hpe.com/terms-of-service/).
+> HPE could suspend the account you use or change the API at any time. Use a dedicated, view-only account you can afford to lose.
+> Not affiliated with or endorsed by HPE. See [Terms of Service and risks](#terms-of-service-and-risks).
 
 ---
 
@@ -33,6 +35,7 @@ the online status of each AP and switch and the health of each site.
 - [Troubleshooting](#troubleshooting)
 - [FAQ](#faq)
 - [Limitations](#limitations)
+- [Terms of Service and risks](#terms-of-service-and-risks)
 - [Documentation](#documentation)
 - [Credits and license](#credits-and-license)
 
@@ -85,7 +88,7 @@ View-only access is enough for everything this integration does.
 ## Step 3: configure
 
 1. Go to **Settings → Devices & services → Add integration** and search for **HPE Instant On**.
-2. Enter the dedicated account's email and password.
+2. Enter the dedicated account's email and password, and tick **I understand and accept the risk** (see [Terms of Service and risks](#terms-of-service-and-risks)).
 3. Choose which sites to include. All sites are selected by default.
 
 ### Options
@@ -157,7 +160,7 @@ restart. Your settings and entities are kept.
 ### Which version am I running?
 
 - **HACS** shows the installed version on the integration's HACS page.
-- The card prints its version in the browser console (`INSTANT-ON-CARD 0.4.1`). If that's older than the version you installed, refresh the
+- The card prints its version in the browser console (`INSTANT-ON-CARD 0.4.2`). If that's older than the version you installed, refresh the
   browser as above.
 
 Settings, entities and history are kept across updates. Nothing is reset unless the changelog says so.
@@ -395,6 +398,42 @@ integrations. This is why the account should be dedicated, view-only and used fo
 - Cloud only: presence updates once per poll interval, and the integration doesn't work while the internet or the HPE cloud is down.
 - MFA must be off on the integration's account.
 - Alerts come from the site summary. The alert detail endpoint isn't used yet.
+
+## Terms of Service and risks
+
+This project isn't affiliated with, endorsed by or supported by Hewlett Packard Enterprise. "HPE", "Aruba" and "Instant On"
+are trademarks of HPE and are used here only to describe compatibility.
+
+**There is no official Instant On API.** The integration signs in with your Instant On account and makes the same read-only
+requests as the Instant On web portal. Before using it, you should know that the
+[HPE Networking Instant On Terms of Service](https://instant-on.hpe.com/terms-of-service/) say users may not:
+
+- *"decompile, disassemble or reverse engineer any Site software or use any network monitoring or discovery software to
+  determine the Site architecture"*, which is how this API was originally documented;
+- *"use any automatic or manual process to harvest information from the Site"*, which a polling integration may be seen to do;
+- make *"access through a single name… available to multiple users on a network"*.
+
+Read literally, using this integration may breach those terms. Its design keeps the impact low:
+
+| | |
+|---|---|
+| Read-only | It never changes settings, devices or clients |
+| Low rate | One poll per minute by default (minimum 30 s), the same requests the portal makes |
+| Your data only | It only reads sites your account can already see |
+| No device software touched | No firmware or app is modified or decompiled |
+
+**What could happen:** HPE may suspend or close the account the integration uses, or change or block the API, without notice.
+Your Instant On devices and network keep working either way; only this integration would stop.
+
+**Recommendations:**
+- Use a **dedicated account with view-only access**, not your administrator account, and one you'd be fine losing.
+- Don't lower the polling interval more than you need.
+- If you need a supported solution, ask HPE whether read-only API access is allowed or planned.
+
+Setup asks you to confirm you understand these risks before it signs in.
+
+You use this integration at your own risk. This section isn't legal advice; if the terms matter for your situation (for example
+a business network), check with someone qualified.
 
 ## Documentation
 

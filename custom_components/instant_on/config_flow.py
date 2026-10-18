@@ -13,6 +13,7 @@ import voluptuous as vol
 
 from .api import InstantOnAuthError, InstantOnClient, InstantOnError
 from .const import (
+    CONF_ACCEPT_RISK,
     CONF_ACTIVE_SCAN,
     CONF_INTERNET,
     CONF_NAME_LOOKUP,
@@ -35,6 +36,8 @@ CREDS_SCHEMA = vol.Schema(
         vol.Required(CONF_PASSWORD): selector.TextSelector(
             selector.TextSelectorConfig(type=selector.TextSelectorType.PASSWORD)
         ),
+        # Must be ticked: the API is unofficial and may conflict with the Instant On Terms of Service.
+        vol.Required(CONF_ACCEPT_RISK, default=False): selector.BooleanSelector(),
     }
 )
 
@@ -54,7 +57,11 @@ class InstantOnConfigFlow(ConfigFlow, domain=DOMAIN):
 
     async def async_step_user(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         errors: dict[str, str] = {}
-        if user_input is not None:
+        entered = dict(user_input or {})
+        if user_input is not None and not user_input.get(CONF_ACCEPT_RISK):
+            errors["base"] = "accept_risk"
+        elif user_input is not None:
+            user_input = {k: v for k, v in user_input.items() if k != CONF_ACCEPT_RISK}
             await self.async_set_unique_id(user_input[CONF_USERNAME].lower())
             self._abort_if_unique_id_configured()
             try:
@@ -65,7 +72,7 @@ class InstantOnConfigFlow(ConfigFlow, domain=DOMAIN):
                 errors["base"] = "invalid_auth"
             except InstantOnError:
                 errors["base"] = "cannot_connect"
-            except Exception:
+            except Exception:  # anything unexpected becomes a form error rather than a crash
                 errors["base"] = "unknown"
             else:
                 if not self._sites:
@@ -73,7 +80,11 @@ class InstantOnConfigFlow(ConfigFlow, domain=DOMAIN):
                 else:
                     self._creds = user_input
                     return await self.async_step_sites()
-        return self.async_show_form(step_id="user", data_schema=CREDS_SCHEMA, errors=errors)
+        # Keep what the user typed (except the password) when the form is shown again with an error.
+        suggested = {k: v for k, v in entered.items() if k != CONF_PASSWORD}
+        return self.async_show_form(
+            step_id="user", data_schema=self.add_suggested_values_to_schema(CREDS_SCHEMA, suggested), errors=errors
+        )
 
     async def async_step_sites(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         if user_input is not None:
