@@ -243,7 +243,7 @@ IDs for history) and `updated` (time of the last successful poll).
 - One plain `HTMLElement` with a shadow root and no framework or build step. Each refresh re-renders the whole card; it's small enough.
 - Sections: `header`, `kpis`, `map`, `aps`, `switches`, `talkers`, selected and ordered by the `sections` option. When `aps` and `switches`
   are next to each other, they share a row.
-- The **network map** is a tidy-tree layout in SVG: leaves take consecutive rows, and parents centre on their children. Links are Bézier curves with
+- The **network map** is a tidy-tree layout in SVG: leaves take consecutive rows, and parents center on their children. Links are Bézier curves with
   an animated dash. Leaf devices get a client bubble; parent devices show their client count in the subtitle, so nothing overlaps a link.
   On narrow screens, the map scrolls sideways instead of shrinking.
 - The layout responds to the card's own width (container queries), not the window's: four KPI tiles, then two, then one.

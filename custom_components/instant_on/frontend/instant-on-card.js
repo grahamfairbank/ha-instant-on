@@ -438,7 +438,7 @@ class InstantOnCard extends HTMLElement {
       (kids[p] = kids[p] || []).push(d);
     }
     for (const k in kids) kids[k].sort((a, b) => (a.type === b.type ? (a.name || "").localeCompare(b.name || "") : a.type === "switch" ? -1 : 1));
-    // Tidy-tree layout: leaves get consecutive rows, parents centre on their children.
+    // Tidy-tree layout: leaves get consecutive rows, parents center on their children.
     const pos = {}, ROW = 66, COLW = 276, NODE_W = 222, NODE_H = 46;
     let row = 0, maxDepth = 0;
     const place = (id, depth) => {

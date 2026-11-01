@@ -118,7 +118,7 @@ def vendor_for(db: dict[str, str], mac: str) -> str | None:
 
 # --------------------------------------------------------------------------- network lookups (blocking)
 def arp_table() -> dict[str, str]:
-    """MAC -> IP from the host's neighbour table."""
+    """MAC -> IP from the host's neighbor table."""
     out: dict[str, str] = {}
     try:
         with open("/proc/net/arp", encoding="utf-8") as f:
@@ -184,7 +184,7 @@ def local_subnets() -> list[ipaddress.IPv4Network]:
 
 
 def sweep(nets: list[ipaddress.IPv4Network]) -> int:
-    """Send one tiny UDP packet to every address so the kernel ARPs them and fills the neighbour table."""
+    """Send one tiny UDP packet to every address so the kernel ARPs them and fills the neighbor table."""
     sent = 0
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     try:

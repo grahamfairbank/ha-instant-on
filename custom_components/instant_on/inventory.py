@@ -49,7 +49,7 @@ def complete_inventory(
             "ipAddress": (sd.get("ipAddress") or "").split("/")[0] or None,
             "partial": True,  # details beyond these aren't available for this device
         }
-        # Uplink: the switch port that reports this device as its neighbour.
+        # Uplink: the switch port that reports this device as its neighbor.
         for sw in elements:
             for port in sw.get("ethernetPorts") or []:
                 if port.get("directlyConnectedDeviceId") == dev_id:

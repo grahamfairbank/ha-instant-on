@@ -40,7 +40,7 @@ and versions follow [Semantic Versioning](https://semver.org/).
 
 ## [0.3.1] - 2026-10-17
 
-No change in behaviour from 0.3.0.
+No change in behavior from 0.3.0.
 
 ### Added
 - Integration icon (`brand/icon.png`), shown in HACS.
