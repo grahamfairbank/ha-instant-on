@@ -69,6 +69,7 @@ The card is one plain JavaScript file, `custom_components/instant_on/frontend/in
 - Entities read from the coordinator only; they never call the API.
 - Access new API fields with `.get()`: the schema can change without warning.
 - Document new fields or endpoints in [docs/API.md](docs/API.md).
+- Write docs, UI text, release notes and comments in US English (color, organize, center, behavior, neighbor, license).
 - Run `ruff check .` before you open a PR (the rules are in `ruff.toml`; CI uses ruff 0.14.0). Without a local ruff:
   `docker run --rm -v "$PWD:/io" -w /io ghcr.io/astral-sh/ruff:0.14.0 check --no-cache .`
 
@@ -90,4 +91,6 @@ The card is one plain JavaScript file, `custom_components/instant_on/frontend/in
    ```
 
 4. On GitHub: **Releases → Draft a new release**, choose the tag, set the title to the version, paste that version's changelog section, then **Publish release**.
+   With the [GitHub CLI](https://cli.github.com/) instead: `gh release create vX.Y.Z --title vX.Y.Z --notes-file notes.md`, where `notes.md` holds
+   that version's changelog section.
    HACS offers the update to users from this release; a tag alone isn't enough.

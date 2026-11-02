@@ -5,6 +5,9 @@ and versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Changed
+- Docs, release notes and code comments use US English spelling throughout (behavior, center, neighbor). No change in behavior.
+
 ## [0.4.2] - 2026-10-18
 
 ### Added
