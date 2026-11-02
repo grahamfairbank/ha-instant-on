@@ -1,0 +1,117 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 712" font-family="Segoe UI, system-ui, sans-serif">
+<defs><marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#555"/></marker><marker id="b" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#3b78d8"/></marker></defs>
+<rect width="1200" height="712" fill="#ffffff"/>
+<text x="40" y="52" font-size="26" font-weight="700" fill="#1b2230">How ha-instant-on works</text>
+<text x="40" y="82" text-anchor="start" font-size="15" fill="#5d6676">A read-only Home Assistant integration that shows HPE Aruba Networking Instant On sites, devices and clients, using the portal's private cloud API.</text>
+<rect x="40" y="120" width="220" height="170" rx="10" fill="#f1ecfb" stroke="#7d5bc6" stroke-width="2"/>
+<text x="150" y="146" text-anchor="middle" font-size="16" font-weight="700" fill="#1b2230">Home Assistant users</text>
+<text x="150" y="170" text-anchor="middle" font-size="13" fill="#1b2230">dashboard card, the Network</text>
+<text x="150" y="188" text-anchor="middle" font-size="13" fill="#1b2230">sidebar view, entities and</text>
+<text x="150" y="206" text-anchor="middle" font-size="13" fill="#1b2230">automations: presence for</text>
+<text x="150" y="224" text-anchor="middle" font-size="13" fill="#1b2230">every client, device online</text>
+<text x="150" y="242" text-anchor="middle" font-size="13" fill="#1b2230">status, site health</text>
+<rect x="320" y="100" width="560" height="382" rx="12" fill="#fafdfb" stroke="#2f9e55" stroke-width="2" stroke-dasharray="6 4"/>
+<text x="334" y="122" text-anchor="start" font-size="14" font-weight="700" fill="#2f9e55">Home Assistant: custom_components/instant_on (hub + coordinator)</text>
+<rect x="338" y="132" width="252" height="82" rx="10" fill="#e9f6ec" stroke="#2f9e55" stroke-width="2"/>
+<text x="464" y="158" text-anchor="middle" font-size="15" font-weight="700" fill="#1b2230">Coordinator</text>
+<text x="464" y="182" text-anchor="middle" font-size="13" fill="#1b2230">one per Instant On account;</text>
+<text x="464" y="200" text-anchor="middle" font-size="13" fill="#1b2230">polls every 60 s (30 to 3600 s)</text>
+<rect x="610" y="132" width="252" height="82" rx="10" fill="#e9f6ec" stroke="#2f9e55" stroke-width="2"/>
+<text x="736" y="158" text-anchor="middle" font-size="15" font-weight="700" fill="#1b2230">InstantOnClient (api.py)</text>
+<text x="736" y="182" text-anchor="middle" font-size="13" fill="#1b2230">sign-in with PKCE, token cache</text>
+<text x="736" y="200" text-anchor="middle" font-size="13" fill="#1b2230">GET requests only</text>
+<rect x="338" y="226" width="252" height="82" rx="10" fill="#e9f6ec" stroke="#2f9e55" stroke-width="2"/>
+<text x="464" y="252" text-anchor="middle" font-size="15" font-weight="700" fill="#1b2230">Entities</text>
+<text x="464" y="276" text-anchor="middle" font-size="13" fill="#1b2230">sensor, binary_sensor,</text>
+<text x="464" y="294" text-anchor="middle" font-size="13" fill="#1b2230">device_tracker, button</text>
+<rect x="610" y="226" width="252" height="82" rx="10" fill="#e9f6ec" stroke="#2f9e55" stroke-width="2"/>
+<text x="736" y="252" text-anchor="middle" font-size="15" font-weight="700" fill="#1b2230">Card and Network panel</text>
+<text x="736" y="276" text-anchor="middle" font-size="13" fill="#1b2230">instant-on-card.js, no build step;</text>
+<text x="736" y="294" text-anchor="middle" font-size="13" fill="#1b2230">data via websocket instant_on/overview</text>
+<rect x="338" y="320" width="252" height="82" rx="10" fill="#e9f6ec" stroke="#2f9e55" stroke-width="2"/>
+<text x="464" y="346" text-anchor="middle" font-size="15" font-weight="700" fill="#1b2230">InternetCoordinator</text>
+<text x="464" y="370" text-anchor="middle" font-size="13" fill="#1b2230">latency, jitter, loss, DNS and</text>
+<text x="464" y="388" text-anchor="middle" font-size="13" fill="#1b2230">HTTPS checks every 30 s; speed tests</text>
+<rect x="610" y="320" width="252" height="82" rx="10" fill="#e9f6ec" stroke="#2f9e55" stroke-width="2"/>
+<text x="736" y="346" text-anchor="middle" font-size="15" font-weight="700" fill="#1b2230">ClientNamer</text>
+<text x="736" y="370" text-anchor="middle" font-size="13" fill="#1b2230">names from Instant On, Home</text>
+<text x="736" y="388" text-anchor="middle" font-size="13" fill="#1b2230">Assistant, mDNS, DHCP, DNS, NetBIOS</text>
+<rect x="338" y="414" width="524" height="56" rx="10" fill="#fdf3e3" stroke="#e0a030" stroke-width="2"/>
+<text x="600" y="440" text-anchor="middle" font-size="14" font-weight="700" fill="#1b2230">Data kept in Home Assistant</text>
+<text x="600" y="464" text-anchor="middle" font-size="13" fill="#1b2230">account, site IDs, options (config entry); name cache; recorder history</text>
+<rect x="960" y="120" width="210" height="170" rx="10" fill="#e8f0fb" stroke="#3b78d8" stroke-width="2"/>
+<text x="1065" y="146" text-anchor="middle" font-size="16" font-weight="700" fill="#1b2230">HPE Instant On cloud</text>
+<text x="1065" y="170" text-anchor="middle" font-size="13" fill="#1b2230">portal.instant-on.hpe.com</text>
+<text x="1065" y="188" text-anchor="middle" font-size="13" fill="#1b2230">(settings.json, /api/sites/...)</text>
+<text x="1065" y="206" text-anchor="middle" font-size="13" fill="#1b2230">sso.arubainstanton.com</text>
+<text x="1065" y="224" text-anchor="middle" font-size="13" fill="#1b2230">(sign-in, tokens)</text>
+<text x="1065" y="242" text-anchor="middle" font-size="13" fill="#1b2230">unofficial private API</text>
+<rect x="960" y="310" width="210" height="160" rx="10" fill="#e8f0fb" stroke="#3b78d8" stroke-width="2"/>
+<text x="1065" y="336" text-anchor="middle" font-size="16" font-weight="700" fill="#1b2230">Internet checks</text>
+<text x="1065" y="360" text-anchor="middle" font-size="13" fill="#1b2230">public resolvers and test</text>
+<text x="1065" y="378" text-anchor="middle" font-size="13" fill="#1b2230">sites (Cloudflare, Google),</text>
+<text x="1065" y="396" text-anchor="middle" font-size="13" fill="#1b2230">Cloudflare speed test;</text>
+<text x="1065" y="414" text-anchor="middle" font-size="13" fill="#1b2230">MAC vendor list from</text>
+<text x="1065" y="432" text-anchor="middle" font-size="13" fill="#1b2230">wireshark.org monthly</text>
+<path d="M260,205 L318,205" stroke="#555" stroke-width="2" fill="none" marker-end="url(#a)"/>
+<text x="289" y="195" text-anchor="middle" font-size="12" fill="#444">card</text>
+<path d="M862,170 L958,170" stroke="#555" stroke-width="2" fill="none" marker-end="url(#a)"/>
+<text x="910" y="160" text-anchor="middle" font-size="12" fill="#444">HTTPS</text>
+<path d="M880,385 L958,385" stroke="#555" stroke-width="2" fill="none" marker-end="url(#a)"/>
+<path d="M590,173 L608,173" stroke="#555" stroke-width="2" fill="none" marker-end="url(#a)"/>
+<text x="40" y="516" text-anchor="start" font-size="18" font-weight="700" fill="#1b2230">The main flow</text>
+<rect x="40" y="530" width="211" height="130" rx="10" fill="#f7f8fa" stroke="#9aa3b2" stroke-width="1.5"/>
+<circle cx="62" cy="554" r="13" fill="#1b2230"/>
+<text x="62" y="559" text-anchor="middle" font-size="14" font-weight="700" fill="#ffffff">1</text>
+<text x="82" y="559" text-anchor="start" font-size="14" font-weight="700" fill="#1b2230">Discover and sign in</text>
+<text x="52" y="586" text-anchor="start" font-size="12.5" fill="#1b2230">Reads settings.json, then signs</text>
+<text x="52" y="603" text-anchor="start" font-size="12.5" fill="#1b2230">in with the account (MFA off,</text>
+<text x="52" y="620" text-anchor="start" font-size="12.5" fill="#1b2230">view-only) via PKCE. The bearer</text>
+<text x="52" y="637" text-anchor="start" font-size="12.5" fill="#1b2230">token lasts about 30 minutes.</text>
+<path d="M252,595 L266,595" stroke="#555" stroke-width="2" fill="none" marker-end="url(#a)"/>
+<rect x="267" y="530" width="211" height="130" rx="10" fill="#f7f8fa" stroke="#9aa3b2" stroke-width="1.5"/>
+<circle cx="289" cy="554" r="13" fill="#1b2230"/>
+<text x="289" y="559" text-anchor="middle" font-size="14" font-weight="700" fill="#ffffff">2</text>
+<text x="309" y="559" text-anchor="start" font-size="14" font-weight="700" fill="#1b2230">Poll</text>
+<text x="279" y="586" text-anchor="start" font-size="12.5" fill="#1b2230">Every 60 s: the site list, then</text>
+<text x="279" y="603" text-anchor="start" font-size="12.5" fill="#1b2230">clientSummary and inventory</text>
+<text x="279" y="620" text-anchor="start" font-size="12.5" fill="#1b2230">for each selected site. GET only;</text>
+<text x="279" y="637" text-anchor="start" font-size="12.5" fill="#1b2230">nothing is changed in the cloud.</text>
+<path d="M479,595 L493,595" stroke="#555" stroke-width="2" fill="none" marker-end="url(#a)"/>
+<rect x="494" y="530" width="211" height="130" rx="10" fill="#f7f8fa" stroke="#9aa3b2" stroke-width="1.5"/>
+<circle cx="516" cy="554" r="13" fill="#1b2230"/>
+<text x="516" y="559" text-anchor="middle" font-size="14" font-weight="700" fill="#ffffff">3</text>
+<text x="536" y="559" text-anchor="start" font-size="14" font-weight="700" fill="#1b2230">Build entities</text>
+<text x="506" y="586" text-anchor="start" font-size="12.5" fill="#1b2230">Site sensors, an online sensor</text>
+<text x="506" y="603" text-anchor="start" font-size="12.5" fill="#1b2230">per AP or switch, a device</text>
+<text x="506" y="620" text-anchor="start" font-size="12.5" fill="#1b2230">tracker per client MAC. Entities</text>
+<text x="506" y="637" text-anchor="start" font-size="12.5" fill="#1b2230">read the coordinator, not the API.</text>
+<path d="M706,595 L720,595" stroke="#555" stroke-width="2" fill="none" marker-end="url(#a)"/>
+<rect x="721" y="530" width="211" height="130" rx="10" fill="#f7f8fa" stroke="#9aa3b2" stroke-width="1.5"/>
+<circle cx="743" cy="554" r="13" fill="#1b2230"/>
+<text x="743" y="559" text-anchor="middle" font-size="14" font-weight="700" fill="#ffffff">4</text>
+<text x="763" y="559" text-anchor="start" font-size="14" font-weight="700" fill="#1b2230">Name the clients</text>
+<text x="733" y="586" text-anchor="start" font-size="12.5" fill="#1b2230">Fills in names, vendor and type</text>
+<text x="733" y="603" text-anchor="start" font-size="12.5" fill="#1b2230">from local sources, cached for</text>
+<text x="733" y="620" text-anchor="start" font-size="12.5" fill="#1b2230">6 hours. MAC addresses never</text>
+<text x="733" y="637" text-anchor="start" font-size="12.5" fill="#1b2230">leave the network.</text>
+<path d="M933,595 L947,595" stroke="#555" stroke-width="2" fill="none" marker-end="url(#a)"/>
+<rect x="948" y="530" width="211" height="130" rx="10" fill="#f7f8fa" stroke="#9aa3b2" stroke-width="1.5"/>
+<circle cx="970" cy="554" r="13" fill="#1b2230"/>
+<text x="970" y="559" text-anchor="middle" font-size="14" font-weight="700" fill="#ffffff">5</text>
+<text x="990" y="559" text-anchor="start" font-size="14" font-weight="700" fill="#1b2230">Show it</text>
+<text x="960" y="586" text-anchor="start" font-size="12.5" fill="#1b2230">The card asks for a snapshot</text>
+<text x="960" y="603" text-anchor="start" font-size="12.5" fill="#1b2230">every 30 s over the websocket,</text>
+<text x="960" y="620" text-anchor="start" font-size="12.5" fill="#1b2230">plus recorded history. It</text>
+<text x="960" y="637" text-anchor="start" font-size="12.5" fill="#1b2230">never calls the cloud.</text>
+<text x="40" y="684" text-anchor="start" font-size="13" fill="#444">Unofficial and unsupported: use a dedicated view-only account. Internet health runs from the Home Assistant host and does not depend on Instant On.</text>
+<rect x="40" y="694" width="14" height="14" rx="3" fill="#e8f0fb" stroke="#3b78d8"/>
+<text x="62" y="706" text-anchor="start" font-size="12" fill="#444">Outside this project</text>
+<rect x="210" y="694" width="14" height="14" rx="3" fill="#e9f6ec" stroke="#2f9e55"/>
+<text x="232" y="706" text-anchor="start" font-size="12" fill="#444">This project</text>
+<rect x="340" y="694" width="14" height="14" rx="3" fill="#fdf3e3" stroke="#e0a030"/>
+<text x="362" y="706" text-anchor="start" font-size="12" fill="#444">Data kept</text>
+<rect x="440" y="694" width="14" height="14" rx="3" fill="#f1ecfb" stroke="#7d5bc6"/>
+<text x="462" y="706" text-anchor="start" font-size="12" fill="#444">What you see</text>
+<text x="1160" y="706" text-anchor="end" font-size="11" fill="#888">docs/how-it-works.svg · 2026-11-02</text>
+</svg>
