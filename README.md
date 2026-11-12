@@ -2,7 +2,9 @@
 
 [![HACS Custom](https://img.shields.io/badge/HACS-Custom-41BDF5.svg)](https://hacs.xyz/docs/faq/custom_repositories)
 [![Validate](https://github.com/grahamfairbank/ha-instant-on/actions/workflows/validate.yml/badge.svg)](https://github.com/grahamfairbank/ha-instant-on/actions/workflows/validate.yml)
-![Version](https://img.shields.io/badge/version-0.5.0-blue)
+![Version](https://img.shields.io/badge/version-0.5.1-blue)
+
+[![Open your Home Assistant instance and add this repository to HACS.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=grahamfairbank&repository=ha-instant-on&category=integration)
 
 An **unofficial, read-only** Home Assistant integration for **HPE Aruba Networking Instant On** access points and switches.
 It polls the same cloud API the Instant On web portal uses, so you get presence detection for every client on your network, plus
@@ -74,6 +76,12 @@ View-only access is enough for everything this integration does.
 ## Step 2: install
 
 ### HACS (recommended)
+
+Click this button to open this repository in HACS on your own Home Assistant, then click **Download** and restart Home Assistant:
+
+[![Open your Home Assistant instance and add this repository to HACS.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=grahamfairbank&repository=ha-instant-on&category=integration)
+
+Or add it by hand:
 
 1. In HACS, open the three-dot menu → **Custom repositories**.
 2. Add `https://github.com/grahamfairbank/ha-instant-on` with category **Integration**.
@@ -160,7 +168,7 @@ restart. Your settings and entities are kept.
 ### Which version am I running?
 
 - **HACS** shows the installed version on the integration's HACS page.
-- The card prints its version in the browser console (`INSTANT-ON-CARD 0.5.0`). If that's older than the version you installed, refresh the
+- The card prints its version in the browser console (`INSTANT-ON-CARD 0.5.1`). If that's older than the version you installed, refresh the
   browser as above.
 
 Settings, entities and history are kept across updates. Nothing is reset unless the changelog says so.

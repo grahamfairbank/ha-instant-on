@@ -5,6 +5,11 @@ and versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.5.1] - 2026-11-12
+
+### Changed
+- README: an **Open in HACS** button that adds this repository to HACS in one click. No code changes.
+
 ## [0.5.0] - 2026-11-12
 
 ### Added
