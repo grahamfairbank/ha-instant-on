@@ -2,7 +2,7 @@
 
 [![HACS Custom](https://img.shields.io/badge/HACS-Custom-41BDF5.svg)](https://hacs.xyz/docs/faq/custom_repositories)
 [![Validate](https://github.com/grahamfairbank/ha-instant-on/actions/workflows/validate.yml/badge.svg)](https://github.com/grahamfairbank/ha-instant-on/actions/workflows/validate.yml)
-![Version](https://img.shields.io/badge/version-0.4.2-blue)
+![Version](https://img.shields.io/badge/version-0.5.0-blue)
 
 An **unofficial, read-only** Home Assistant integration for **HPE Aruba Networking Instant On** access points and switches.
 It polls the same cloud API the Instant On web portal uses, so you get presence detection for every client on your network, plus
@@ -58,7 +58,7 @@ the online status of each AP and switch and the health of each site.
 | Home Assistant | 2024.11 or later |
 | Instant On | Any site managed in the Instant On cloud portal (APs and/or switches) |
 | Account | A dedicated Instant On account with **MFA off** and **view-only** access ([why](#step-1-create-a-dedicated-account)) |
-| Network | Outbound HTTPS from Home Assistant to `portal.instant-on.hpe.com` and `sso.arubainstanton.com` |
+| Network | Outbound HTTPS from Home Assistant to `portal.instant-on.hpe.com` and `sso.arubainstanton.com`. Internet health also uses `1.1.1.1`, `8.8.8.8`, `www.google.com` and `speed.cloudflare.com`; client names download the vendor list from `www.wireshark.org` once a month. |
 
 ## Step 1: create a dedicated account
 
@@ -88,7 +88,7 @@ View-only access is enough for everything this integration does.
 ## Step 3: configure
 
 1. Go to **Settings → Devices & services → Add integration** and search for **HPE Instant On**.
-2. Enter the dedicated account's email and password, and tick **I understand and accept the risk** (see [Terms of Service and risks](#terms-of-service-and-risks)).
+2. Enter the dedicated account's email and password, and check **I understand and accept the risk** (see [Terms of Service and risks](#terms-of-service-and-risks)).
 3. Choose which sites to include. All sites are selected by default.
 
 ### Options
@@ -160,7 +160,7 @@ restart. Your settings and entities are kept.
 ### Which version am I running?
 
 - **HACS** shows the installed version on the integration's HACS page.
-- The card prints its version in the browser console (`INSTANT-ON-CARD 0.4.2`). If that's older than the version you installed, refresh the
+- The card prints its version in the browser console (`INSTANT-ON-CARD 0.5.0`). If that's older than the version you installed, refresh the
   browser as above.
 
 Settings, entities and history are kept across updates. Nothing is reset unless the changelog says so.
@@ -199,7 +199,7 @@ The integration checks the internet from the Home Assistant host every 30 second
 | HTTPS response | A fresh HTTPS request to `www.google.com/generate_204` (DNS + TCP + TLS) |
 | Status | **Healthy**, **Degraded** (latency over 80 ms, 10% or more loss, or HTTPS failing) or **Down** (nothing reachable) |
 | Public IP, Cloudflare location | `1.1.1.1/cdn-cgi/trace`, every 10 minutes |
-| Speed test | Cloudflare (`speed.cloudflare.com`): 4 parallel downloads (25 MB in total), then 4 parallel uploads (8 MB). First run 2 minutes after start-up, then on the schedule in Options. |
+| Speed test | Cloudflare (`speed.cloudflare.com`): 4 parallel downloads (25 MB in total), then 4 parallel uploads (8 MB). Each test uses about 33 MB, so the default 6-hour schedule uses about 4 GB a month. The first test runs 2 minutes after setup, then on the schedule in Options; restarts don't trigger an extra test while the last result is recent. **On a metered or capped connection, set the schedule to 0** and use the **Run speed test** button instead. |
 
 ### Speed tests and the Home Assistant host's network port
 
@@ -214,6 +214,7 @@ own link (interface, speed, and Ethernet, Wi-Fi or virtual) and the card says so
 
 The link is also a diagnostic sensor (**Host link speed**). If a result is host-limited, the download sensor has `limited_by_host_link: true`.
 
+## Entities
 
 ### Per site (device: *Instant On &lt;site name&gt;*)
 
@@ -232,10 +233,12 @@ The link is also a diagnostic sensor (**Host link speed**). If a result is host-
 | Entity | State | Attributes |
 |---|---|---|
 | `binary_sensor.<device name>` | `on` = connected (status `up`) | `deviceType`, `health`, `operationalState`, `uptimeInSeconds`, `numberOfSecondsSinceLastCommunication`, `uplinkDeviceName`, `isUpToDate`, `wiredClientsCount`, `inputPowerSource` |
-
 | `sensor.<device>_clients` | Clients connected to this AP or switch | |
 | `sensor.<ap>_channel_utilization` | Busiest radio's airtime use (%) | channel, width, utilization and clients per band |
 | `sensor.<switch>_poe_power` | PoE power drawn (W) | `budget_w` |
+
+The device registry entry includes the model, SKU, serial number, firmware version and MAC address. Attributes that count up every
+poll (`uptimeInSeconds`, `numberOfSecondsSinceLastCommunication`) aren't saved to the recorder database.
 
 ### Internet (device: *Internet*, when internet health is on)
 
@@ -249,8 +252,6 @@ The link is also a diagnostic sensor (**Host link speed**). If a result is host-
 | `sensor.internet_download_speed` / `_upload_speed` (Mb/s) | Last speed test (kept across restarts) | `tested_at`, `limited_by_host_link`, `host_link_mbps` |
 | `sensor.internet_host_link_speed` (Mb/s, diagnostic) | The Home Assistant host's network port | `interface`, `type` |
 | `button.internet_run_speed_test` | Runs a speed test now | |
-
-The device registry entry includes the model, SKU, serial number, firmware version and MAC address.
 
 ### Per client (disabled by default)
 
@@ -386,8 +387,8 @@ logger:
 **Can it block clients, toggle SSIDs or power-cycle PoE ports?** Not yet. The integration is read-only by design, and a view-only account
 can't make changes anyway. Write support would need the portal's change requests mapped out first. Contributions are welcome.
 
-**How much traffic does it generate?** Each Instant On poll makes `1 + 2 × number of sites` small HTTPS requests. Internet health adds a few small connections every 30 s, and each speed test uses about 33 MB (about 130 MB a day at the default 6-hour schedule). The sign-in token lasts about 30 minutes,
-so it signs in again (3 requests) roughly every 30 minutes.
+**How much traffic does it generate?** Each Instant On poll makes `1 + 2 × number of sites` small HTTPS requests. Internet health adds a few small connections every 30 s, and each speed test uses about 33 MB (about 130 MB a day at the default 6-hour schedule). The access token lasts about 30 minutes and
+is renewed with one request; a full sign-in (3 requests) happens only at startup or if renewal fails.
 
 **Where are my credentials stored?** In Home Assistant's config entry storage (`/config/.storage/core.config_entries`), unencrypted, like most
 integrations. This is why the account should be dedicated, view-only and used for nothing else.
@@ -396,8 +397,13 @@ integrations. This is why the account should be dedicated, view-only and used fo
 
 - Unofficial API: it may change or be blocked at any time (the old `wiredClientSummary` endpoint already returns 404).
 - Cloud only: presence updates once per poll interval, and the integration doesn't work while the internet or the HPE cloud is down.
-- MFA must be off on the integration's account.
+- MFA must be off on the integration's account, which is one more reason to use a dedicated, view-only account.
+- Read-only: it can't block clients, change SSIDs or power-cycle PoE ports.
+- Instant On gateways aren't supported yet. The integration hasn't been tested with a gateway site, so its WAN details don't appear.
+- New APs and switches are added automatically on the next poll (the integration reloads itself once). Devices you remove from Instant On
+  stay in Home Assistant until you delete them: open the device and choose **Delete**.
 - Alerts come from the site summary. The alert detail endpoint isn't used yet.
+- No automated tests yet: each release is checked against live sites by hand.
 
 ## Terms of Service and risks
 

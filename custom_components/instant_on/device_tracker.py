@@ -44,6 +44,7 @@ async def async_setup_entry(
 class ClientTracker(InstantOnEntity, ScannerEntity):
     # Clients can number in the hundreds: create disabled, user enables the ones they care about.
     _attr_entity_registry_enabled_default = False
+    _unrecorded_attributes = frozenset({"stateDurationInSeconds"})  # counts up every poll
 
     def __init__(self, coordinator, site_id: str, mac: str) -> None:
         super().__init__(coordinator, site_id)

@@ -45,6 +45,7 @@ class InstantOnCoordinator(TimestampDataUpdateCoordinator[dict[str, SiteData]]):
         self.internet = None  # InternetCoordinator when internet health is on
         self.namer = None  # ClientNamer when client name lookup is on
         self._warned_missing: set[str] = set()
+        self._known_devices: set[str] | None = None  # sites and devices that have entities
 
     async def _async_update_data(self) -> dict[str, SiteData]:
         wanted = set(self.config_entry.options.get(CONF_SITES) or self.config_entry.data.get(CONF_SITES, []))
@@ -72,6 +73,7 @@ class InstantOnCoordinator(TimestampDataUpdateCoordinator[dict[str, SiteData]]):
                     clients={m: c for c in clients if (m := client_mac(c))},
                     inventory=inventory,
                 )
+            self._check_new_devices(result)
             if self.namer:
                 self.namer.schedule([c for sd in result.values() for c in sd.clients.values()])
             return result
@@ -79,3 +81,16 @@ class InstantOnCoordinator(TimestampDataUpdateCoordinator[dict[str, SiteData]]):
             raise ConfigEntryAuthFailed(str(err)) from err
         except (InstantOnError, TimeoutError, OSError) as err:
             raise UpdateFailed(f"Instant On API error: {err}") from err
+
+    def _check_new_devices(self, result: dict[str, SiteData]) -> None:
+        """Reload the entry once when a new site, AP or switch appears, so it gets a device and entities."""
+        found = set(result) | {
+            dev_id for sd in result.values() for dev in sd.inventory if (dev_id := dev.get("id") or dev.get("macAddress"))
+        }
+        if self._known_devices is None:
+            self._known_devices = found
+            return
+        if new := found - self._known_devices:
+            self._known_devices |= new
+            _LOGGER.info("New Instant On site or device found (%d); reloading to add it", len(new))
+            self.hass.config_entries.async_schedule_reload(self.config_entry.entry_id)

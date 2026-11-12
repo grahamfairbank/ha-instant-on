@@ -71,12 +71,14 @@ async def _async_update_panel(hass: HomeAssistant, keep: bool = True) -> None:
 
 async def async_setup_entry(hass: HomeAssistant, entry: InstantOnConfigEntry) -> bool:
     # Own session (own cookie jar) so SSO cookies don't leak into HA's shared session.
+    # Home Assistant detaches it when the entry unloads.
     session = async_create_clientsession(hass)
     client = InstantOnClient(session, entry.data[CONF_USERNAME], entry.data[CONF_PASSWORD])
     coordinator = InstantOnCoordinator(hass, entry, client)
     if entry.options.get(CONF_NAME_LOOKUP, True):
         namer = ClientNamer(hass, entry.options.get(CONF_ACTIVE_SCAN, False), coordinator.async_update_listeners)
         await namer.async_load()
+        entry.async_on_unload(namer.async_cancel)
         coordinator.namer = namer
     await coordinator.async_config_entry_first_refresh()
     # Register site devices first so APs and switches can link to them by id.
@@ -86,6 +88,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: InstantOnConfigEntry) ->
         coordinator.site_device_ids[site_id] = device.id
     if entry.options.get(CONF_INTERNET, True):
         internet = InternetCoordinator(hass, entry)
+        await internet.async_load_last_speedtest()
         await internet.async_config_entry_first_refresh()
         internet.async_start_schedule()
         coordinator.internet = internet
@@ -106,6 +109,19 @@ async def async_unload_entry(hass: HomeAssistant, entry: InstantOnConfigEntry) -
         ]
         await _async_update_panel(hass, keep=bool(others))
     return unloaded
+
+
+async def async_remove_config_entry_device(
+    hass: HomeAssistant, entry: InstantOnConfigEntry, device: dr.DeviceEntry
+) -> bool:
+    """Allow deleting a site or device that Instant On no longer reports."""
+    data = entry.runtime_data.data or {}
+    current = {f"site_{site_id}" for site_id in data} | {
+        f"dev_{dev.get('id') or dev.get('macAddress')}" for sd in data.values() for dev in sd.inventory
+    }
+    if entry.runtime_data.internet:
+        current.add(f"internet_{entry.entry_id}")
+    return not any(domain == DOMAIN and ident in current for domain, ident in device.identifiers)
 
 
 async def _async_reload(hass: HomeAssistant, entry: InstantOnConfigEntry) -> None:

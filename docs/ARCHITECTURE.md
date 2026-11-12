@@ -55,7 +55,7 @@ The integration follows the standard Home Assistant **hub + coordinator** patter
 |---|---|
 | `api.py` | Async `aiohttp` client: discovery, PKCE sign-in, token cache, authenticated GETs. No Home Assistant imports, so it can be tested on its own. |
 | `const.py` | Constants and small pure helpers (`client_mac`, `client_name`, `is_wireless`, `is_online`). |
-| `coordinator.py` | Polls sites, then clients and inventory for each site in parallel. Converts API errors into `ConfigEntryAuthFailed` or `UpdateFailed`. A `TimestampDataUpdateCoordinator`, so the card can show when data was last fetched. Also holds `site_device_ids`. |
+| `coordinator.py` | Polls sites, then clients and inventory for each site in parallel. Converts API errors into `ConfigEntryAuthFailed` or `UpdateFailed`. Reloads the entry once when a new site, AP or switch appears. A `TimestampDataUpdateCoordinator`, so the card can show when data was last fetched. Also holds `site_device_ids`. |
 | `__init__.py` | `async_setup` registers the websocket command, serves the card file and adds it to every frontend page. `async_setup_entry` creates the client and coordinator, registers a device for each site, sets up the platforms, then adds or removes the Network sidebar panel. |
 | `config_flow.py` | `user` step (credentials) → `sites` step (multi-select), `reauth_confirm`, and the options flow. |
 | `entity.py` | `InstantOnEntity` base class and `DeviceInfo` builders for sites and network devices. |
@@ -88,12 +88,15 @@ sequenceDiagram
   C->>S: POST /as/token.oauth2 (authorization_code, code_verifier)
   S-->>C: { access_token, expires_in: 1799, refresh_token, id_token }
   C->>P: GET /api/sites/ (Authorization: Bearer, x-ion-api-version: 7)
+  Note over C: about 29 minutes later
+  C->>S: POST /as/token.oauth2 (refresh_token, client_id)
+  S-->>C: { access_token, refresh_token (new, single use), expires_in: 1799 }
 ```
 
 - **Discovery first.** Hostnames and the OAuth client ID come from `settings.json` and are never hard-coded, so a portal migration
   (like the earlier move from `portal.arubainstanton.com`) keeps working.
-- **Token lifetime.** Tokens are cached until `expires_in - 60 s`. The `refresh_token` is not used yet; signing in again costs 3 requests about
-  every 30 minutes.
+- **Token lifetime.** Tokens are cached until `expires_in - 60 s`, then renewed with the `refresh_token` grant (one request). Refresh tokens
+  are single use: each renewal returns a new one, and the old one stops working. If renewal fails, the client signs in again in full (3 requests).
 - **Concurrency.** An `asyncio.Lock` around the token check means requests running in parallel trigger only one sign-in.
 - **401 handling.** On a 401, the token is marked expired and the request is retried once. A second 401 raises `InstantOnAuthError`.
 - **Isolation.** The client has its own `ClientSession`, so SSO cookies never leak into Home Assistant's shared session.
@@ -143,10 +146,11 @@ Every 30 s, in parallel:
 `outage_since` is set at the first `down` sample.
 
 **Speed test** (`async_run_speedtest`): a `bytes=0` request for latency, then 4 parallel downloads of `__down?bytes=` (25 MB total), then 4 parallel
-uploads to `__up` (8 MB total), all on the coordinator's own session. A lock stops overlapping runs, and a 5-minute cooldown applies to scheduled
-runs (the button bypasses it). It runs 2 minutes after setup, then every N hours (`async_track_time_interval`), or never when N = 0. The
-result is marked `capped` when the faster direction reaches 85% or more of the host's link speed. Download and upload sensors are
-`RestoreSensor`s, so the last result survives restarts.
+uploads to `__up` (8 MB total), on Home Assistant's shared session. A lock stops overlapping runs, and a 5-minute cooldown applies to scheduled
+runs (the button bypasses it). It runs every N hours (`async_track_time_interval`), or never when N = 0, plus once 2 minutes after setup
+unless the last saved result is younger than N hours. The last result is saved in `.storage/instant_on.speedtest.<entry_id>`, so restarts
+and reloads don't cost an extra test. The result is marked `capped` when the faster direction reaches 85% or more of the host's link speed.
+Download and upload sensors are `RestoreSensor`s too.
 
 **In the card:** the `instant_on/overview` payload has an `internet` object (the latest probe data, `link`, `speed`, `speed_running` and
 `entities`). The card reads 24 h of latency and loss history and 7 days of status, download and upload history from the recorder. Uptime is the
@@ -157,8 +161,10 @@ share of recorded time not `down`; the strip shows the worst state in each hour.
 
 `ClientNamer` (`names.py`) runs when **Look up names for unnamed clients** is on. It's stored on `coordinator.namer`. After each successful poll,
 the coordinator calls `namer.schedule(clients)`, which starts a background refresh unless one is already running. When the refresh
-finishes, it saves the cache and calls `coordinator.async_update_listeners()`, so entities and the card pick up new names without waiting
-for the next poll.
+finishes, it calls `coordinator.async_update_listeners()`, so entities and the card pick up new names without waiting for the next poll.
+The cache is saved only when something changed, and at most every 10 minutes. The MAC vendor list is read from the cached copy at setup and
+downloaded again in the background when it's missing or older than 30 days, so setup never waits for it. Background work is cancelled when
+the entry unloads.
 
 Per refresh:
 
@@ -203,6 +209,10 @@ Clients section.
   `coordinator.site_device_ids`.
 - Each **AP or switch** is a device linked to its site with `via_device_id`, plus a MAC connection so it can merge with other integrations
   that know the same MAC. (`via_device` with an identifier tuple is deprecated and stops working in Home Assistant 2027.8.)
+- **New devices.** After each poll the coordinator compares the sites and devices it sees with those it started with. A new one schedules
+  one reload of the entry, which registers its device and entities on every platform. Client trackers are added without a reload.
+- **Removed devices** stay until the user deletes them. `async_remove_config_entry_device` allows deleting any device Instant On no longer
+  reports, and refuses for current ones.
 - **Trackers** create no devices of their own. Home Assistant enables a tracker automatically when its MAC matches a device that's already registered.
 
 ## Dashboard card
@@ -254,7 +264,7 @@ IDs for history) and `updated` (time of the last successful poll).
 | Failure | Result |
 |---|---|
 | Bad credentials or MFA on (sign-in) | `InstantOnAuthError` → `ConfigEntryAuthFailed` → Home Assistant starts the re-auth flow |
-| Network error, 5xx, unexpected 4xx | `InstantOnError` / `OSError` / `TimeoutError` → `UpdateFailed` → entities become unavailable, retried next interval |
+| Network error, timeout (30 s per request), 5xx, 429, unexpected 4xx, malformed reply | `InstantOnError` → `UpdateFailed` → entities become unavailable, retried next interval. Errors at the sign-in server count here too, so an HPE outage never asks for the password again. |
 | Fails during the first refresh | `ConfigEntryNotReady`: Home Assistant retries setup with backoff |
 | Client disappears from the list | Tracker → `not_home` (stays available) |
 | Card can't reach `instant_on/overview` | Before any data has loaded, the card shows the error message. After that it keeps showing the last data (the header's "updated … ago" shows its age). Either way it retries every 30 s. |
@@ -263,14 +273,16 @@ IDs for history) and `updated` (time of the last successful poll).
 ## Security
 
 - The account's credentials are stored in the config entry, like most integrations. Hence the requirement for a dedicated, view-only account.
-- Diagnostics redact `username`, `password`, `macAddress`, `mac`, `ipAddress`, `serialNumber`, `hostName` and `name`.
+- Diagnostics redact the credentials, every field whose name suggests a name, address, location, host, SSID, key, password or alert text, and
+  any string that looks like a MAC or IP address wherever it appears (device IDs are MACs). Clients are listed without their MAC keys, and
+  sites are numbered instead of named.
 - The integration only makes GET requests to the REST API, so it can't change your network.
-- The websocket command requires an authenticated Home Assistant user and returns only data that user could already see through the entities.
+- The websocket command and the Network panel are available to every signed-in Home Assistant user, not only admins. They show every
+  client's name, MAC and IP and the public IP, including for trackers that are disabled. Turn off **Show the Network panel** if that's not
+  wanted; non-admin users can still reach the data through the websocket command.
 
 ## Possible future work
 
-- Use `refresh_token` instead of signing in again in full
-- Pick up new network devices without a reload
 - A visual card editor (`getConfigElement`)
 - Write actions (block a client, toggle an SSID, power-cycle a PoE port), which need an admin account and request mapping
 - Unit tests with recorded fixtures (`pytest-homeassistant-custom-component`)

@@ -5,13 +5,38 @@ and versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-11-12
+
+### Added
+- New APs, switches and sites appear on their own: the integration reloads itself once when a poll finds one.
+- Devices that Instant On no longer reports can be deleted from Home Assistant (open the device, then **Delete**).
+
 ### Changed
-- Docs, release notes and code comments use US English spelling throughout (behavior, center, neighbor). No change in behavior.
+- The access token is renewed with a refresh token (one request) instead of a full sign-in every 30 minutes.
+- Speed tests: the last result is saved, so restarts and reloads no longer run an extra test (about 33 MB each). The README now
+  warns about metered connections.
+- Setup no longer waits for the MAC vendor list to download; it's fetched in the background.
+- The client-name cache is written at most every 10 minutes, and only when something changed, instead of after every poll.
+- Uptime counters on APs and switches, the client trackers' state duration and the public IP are no longer saved to the recorder
+  database, so they don't add a row every minute.
+- Docs, release notes and code comments use US English spelling throughout.
+
+### Fixed
+- An HPE sign-in outage no longer asks you to re-enter your password. Only a rejected password or MFA does.
+- Network errors, timeouts and malformed replies show up as "unavailable" and retry, instead of logging a traceback every poll.
+  Each request now times out after 30 seconds.
+- Diagnostics no longer contain client MAC addresses or device names, SSIDs and other personal fields. Redaction now covers any field
+  that looks like a name, address, MAC or IP.
+- The setup screen's sign-in check no longer leaves a connection pool open until Home Assistant restarts.
+- A truncated vendor list download no longer stops the integration from loading.
+- A running speed test or name lookup is cancelled when the integration unloads.
+- Re-authentication shows "Unexpected error" instead of failing when something unexpected goes wrong.
+- README: the **Entities** heading was missing, the AP and switch table was split in two, and the firewall list was incomplete.
 
 ## [0.4.2] - 2026-10-18
 
 ### Added
-- Setup now requires ticking **I understand and accept the risk**, after a short explanation that the API is unofficial,
+- Setup now requires checking **I understand and accept the risk**, after a short explanation that the API is unofficial,
   may conflict with the HPE Networking Instant On Terms of Service, and that HPE may suspend the account used. Existing installations
   aren't affected.
 - README: a clearer warning at the top and a **Terms of Service and risks** section quoting the relevant clauses, what the

@@ -25,4 +25,6 @@ class SpeedTestButton(InternetEntity, ButtonEntity):
 
     async def async_press(self) -> None:
         # Runs in the background; the sensors update when it finishes (about 10-30 s).
-        self.hass.async_create_background_task(self.coordinator.async_run_speedtest(force=True), "instant_on speed test")
+        self.coordinator.config_entry.async_create_background_task(
+            self.hass, self.coordinator.async_run_speedtest(force=True), "instant_on speed test"
+        )

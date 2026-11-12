@@ -36,6 +36,8 @@ async def async_setup_entry(
 class DeviceOnline(InstantOnEntity, BinarySensorEntity):
     _attr_device_class = BinarySensorDeviceClass.CONNECTIVITY
     _attr_name = None  # use the device name
+    # These count up every poll; recording them would write a new database row every minute.
+    _unrecorded_attributes = frozenset({"uptimeInSeconds", "numberOfSecondsSinceLastCommunication"})
 
     def __init__(self, coordinator, site_id: str, dev_id: str) -> None:
         super().__init__(coordinator, site_id)

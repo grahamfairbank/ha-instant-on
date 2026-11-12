@@ -19,8 +19,9 @@ from typing import Any
 import aiohttp
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, callback
-from homeassistant.helpers.aiohttp_client import async_create_clientsession
+from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.event import async_call_later, async_track_time_interval
+from homeassistant.helpers.storage import Store
 from homeassistant.helpers.update_coordinator import TimestampDataUpdateCoordinator
 
 from .const import CONF_SPEEDTEST_HOURS, DEFAULT_SPEEDTEST_HOURS, DOMAIN
@@ -139,8 +140,8 @@ class InternetCoordinator(TimestampDataUpdateCoordinator[dict[str, Any]]):
 
     def __init__(self, hass: HomeAssistant, entry: ConfigEntry) -> None:
         super().__init__(hass, _LOGGER, config_entry=entry, name=f"{DOMAIN}_internet", update_interval=INTERVAL)
-        # Own session: speed tests open several parallel connections and shouldn't share a pool.
-        self.session = async_create_clientsession(hass)
+        self.session = async_get_clientsession(hass)
+        self._store: Store = Store(hass, 1, f"{DOMAIN}.speedtest.{entry.entry_id}")
         self.trace: dict[str, str] = {}
         self._trace_at = 0.0
         self.link: dict[str, Any] = {}
@@ -157,8 +158,21 @@ class InternetCoordinator(TimestampDataUpdateCoordinator[dict[str, Any]]):
             self.config_entry.async_on_unload(
                 async_track_time_interval(self.hass, self._scheduled_speedtest, timedelta(hours=hours))
             )
-            # First result shortly after start-up rather than hours later.
-            self.config_entry.async_on_unload(async_call_later(self.hass, 120, self._scheduled_speedtest))
+            # First result shortly after start-up, unless the last saved one is still within the schedule
+            # (a restart or reload shouldn't cost another 33 MB).
+            if not self._speed_age() or self._speed_age() > hours * 3600:
+                self.config_entry.async_on_unload(async_call_later(self.hass, 120, self._scheduled_speedtest))
+
+    async def async_load_last_speedtest(self) -> None:
+        if (data := await self._store.async_load()) and isinstance(data.get("speed"), dict):
+            self.speed = data["speed"]
+
+    def _speed_age(self) -> float | None:
+        """Seconds since the last saved speed test, or None."""
+        try:
+            return (datetime.now(UTC) - datetime.fromisoformat(self.speed["at"])).total_seconds()
+        except (TypeError, KeyError, ValueError):
+            return None
 
     async def _scheduled_speedtest(self, _now: datetime) -> None:
         await self.async_run_speedtest()
@@ -239,6 +253,7 @@ class InternetCoordinator(TimestampDataUpdateCoordinator[dict[str, Any]]):
             try:
                 self.speed = await self._speedtest()
                 _LOGGER.debug("Speed test: %s", self.speed)
+                await self._store.async_save({"speed": self.speed})
             except (TimeoutError, aiohttp.ClientError) as err:
                 _LOGGER.warning("Speed test failed: %s", err)
             finally:

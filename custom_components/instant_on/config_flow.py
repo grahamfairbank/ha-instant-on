@@ -36,16 +36,21 @@ CREDS_SCHEMA = vol.Schema(
         vol.Required(CONF_PASSWORD): selector.TextSelector(
             selector.TextSelectorConfig(type=selector.TextSelectorType.PASSWORD)
         ),
-        # Must be ticked: the API is unofficial and may conflict with the Instant On Terms of Service.
+        # Must be checked: the API is unofficial and may conflict with the Instant On Terms of Service.
         vol.Required(CONF_ACCEPT_RISK, default=False): selector.BooleanSelector(),
     }
 )
 
 
 async def _fetch_sites(hass, username: str, password: str) -> dict[str, str]:
-    client = InstantOnClient(async_create_clientsession(hass), username, password)
-    await client.login()
-    return {str(s["id"]): s.get("name", str(s["id"])) for s in await client.get_sites()}
+    # Not tied to an entry, so detach it ourselves once the check is done.
+    session = async_create_clientsession(hass, auto_cleanup=False)
+    try:
+        client = InstantOnClient(session, username, password)
+        await client.login()
+        return {str(s["id"]): s.get("name", str(s["id"])) for s in await client.get_sites()}
+    finally:
+        session.detach()
 
 
 class InstantOnConfigFlow(ConfigFlow, domain=DOMAIN):
@@ -114,6 +119,8 @@ class InstantOnConfigFlow(ConfigFlow, domain=DOMAIN):
                 errors["base"] = "invalid_auth"
             except InstantOnError:
                 errors["base"] = "cannot_connect"
+            except Exception:  # anything unexpected becomes a form error rather than a crash
+                errors["base"] = "unknown"
             else:
                 return self.async_update_reload_and_abort(
                     entry, data_updates={CONF_PASSWORD: user_input[CONF_PASSWORD]}

@@ -252,6 +252,7 @@ class InternetSensor(InternetEntity, RestoreSensor):
     """Internet health sensor. Speed results are restored after a restart until the next test."""
 
     entity_description: InternetSensorDescription
+    _unrecorded_attributes = frozenset({"public_ip"})  # keep it out of the long-term database
 
     def __init__(self, coordinator, desc: InternetSensorDescription) -> None:
         super().__init__(coordinator, desc.key)

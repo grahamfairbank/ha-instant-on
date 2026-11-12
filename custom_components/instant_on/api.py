@@ -20,6 +20,10 @@ import aiohttp
 
 from .const import API_VERSION, PORTAL_SETTINGS_URL, TOKEN_LIFETIME_FALLBACK
 
+REQUEST_TIMEOUT = 30  # seconds, per sign-in or API call
+# Network failures and malformed replies become InstantOnError, so callers see one kind of error.
+_TRANSIENT = (aiohttp.ClientError, TimeoutError, ValueError, KeyError, TypeError)
+
 _LOGGER = logging.getLogger(__name__)
 
 
@@ -59,6 +63,7 @@ class InstantOnClient:
         self._settings: PortalSettings | None = None
         self._token: str | None = None
         self._token_expiry: float = 0
+        self._refresh_token: str | None = None
         self._login_lock = asyncio.Lock()
 
     # ---------------------------------------------------------------- auth
@@ -79,6 +84,13 @@ class InstantOnClient:
 
     async def login(self) -> None:
         """Run the full login flow and store a bearer token."""
+        try:
+            async with asyncio.timeout(REQUEST_TIMEOUT):
+                await self._login()
+        except _TRANSIENT as err:
+            raise InstantOnError(f"Sign-in failed: {err!r}") from err
+
+    async def _login(self) -> None:
         settings = await self._load_settings()
         verifier, challenge = _pkce_pair()
 
@@ -113,6 +125,10 @@ class InstantOnClient:
             allow_redirects=False,
         ) as resp:
             location = resp.headers.get("Location", "")
+            status = resp.status
+        if not location:
+            # No redirect at all: the SSO service is down or changed, not a credentials problem.
+            raise InstantOnError(f"Authorization step returned HTTP {status} without a redirect")
         query = parse_qs(urlparse(location).query)
         if query.get("state", [state])[0] != state or "code" not in query:
             raise InstantOnAuthError("Authorization step did not return a code")
@@ -129,21 +145,68 @@ class InstantOnClient:
                 "grant_type": "authorization_code",
             },
         ) as resp:
-            if resp.status >= 400:
+            if resp.status in (400, 401, 403):
                 raise InstantOnAuthError(f"Token exchange failed ({resp.status})")
+            if resp.status >= 400:
+                raise InstantOnError(f"Token exchange failed ({resp.status})")
             tok = await resp.json(content_type=None)
+        self._store_token(tok)
+        _LOGGER.debug("Instant On login OK")
 
+    def _store_token(self, tok: dict[str, Any]) -> None:
+        if not tok.get("access_token"):
+            raise InstantOnAuthError("Token response had no access token")
         self._token = tok["access_token"]
-        # expires_in is not documented; refresh a minute early if present.
+        # Refresh tokens are single use: each refresh returns a new one.
+        self._refresh_token = tok.get("refresh_token")
+        # Renew a minute before the token expires (about 30 minutes).
         lifetime = int(tok.get("expires_in", TOKEN_LIFETIME_FALLBACK))
         self._token_expiry = time.monotonic() + max(lifetime - 60, 60)
-        _LOGGER.debug("Instant On login OK, token valid ~%ss", lifetime)
+
+    async def _refresh(self) -> bool:
+        """Renew the bearer token with the refresh token. Returns False if a full sign-in is needed."""
+        if not self._refresh_token or not self._settings:
+            return False
+        try:
+            async with self._session.post(
+                f"{self._settings.sso_fqdn}/as/token.oauth2",
+                timeout=aiohttp.ClientTimeout(total=REQUEST_TIMEOUT),
+                data={
+                    "client_id": self._settings.client_id,
+                    "grant_type": "refresh_token",
+                    "refresh_token": self._refresh_token,
+                },
+            ) as resp:
+                if resp.status >= 400:
+                    _LOGGER.debug("Token refresh rejected (%s); signing in again", resp.status)
+                    self._refresh_token = None
+                    return False
+                tok = await resp.json(content_type=None)
+            self._store_token(tok)
+        except (InstantOnAuthError, *_TRANSIENT) as err:
+            _LOGGER.debug("Token refresh failed (%s); signing in again", err)
+            self._refresh_token = None
+            return False
+        _LOGGER.debug("Instant On token refreshed")
+        return True
+
+    async def _ensure_token(self) -> None:
+        if self._token and time.monotonic() < self._token_expiry:
+            return
+        if not await self._refresh():
+            await self.login()
 
     # ----------------------------------------------------------------- API
     async def _get(self, path: str, _retry: bool = True) -> Any:
+        try:
+            async with asyncio.timeout(REQUEST_TIMEOUT * 2):  # may include a sign-in
+                return await self._get_once(path, _retry)
+        except _TRANSIENT as err:
+            raise InstantOnError(f"GET {path} failed: {err!r}") from err
+
+    async def _get_once(self, path: str, _retry: bool) -> Any:
         async with self._login_lock:  # avoid parallel logins from gathered requests
-            if not self._token or time.monotonic() >= self._token_expiry:
-                await self.login()
+            await self._ensure_token()
         assert self._settings
         async with self._session.get(
             f"{self._settings.rest_api_url}{path}",
@@ -155,7 +218,7 @@ class InstantOnClient:
         ) as resp:
             if resp.status == 401 and _retry:
                 self._token_expiry = 0
-                return await self._get(path, _retry=False)
+                return await self._get_once(path, _retry=False)
             if resp.status == 401:
                 raise InstantOnAuthError("Bearer token rejected")
             if resp.status >= 400:

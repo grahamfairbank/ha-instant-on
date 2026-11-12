@@ -19,9 +19,10 @@ import socket
 import struct
 import time
 from typing import Any
+import zlib
 
 import aiohttp
-from homeassistant.core import HomeAssistant
+from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.storage import Store
@@ -37,6 +38,7 @@ LOOKUP_CONCURRENCY = 8
 LOOKUP_TIMEOUT = 2.0
 SWEEP_EVERY = 3600
 STORE_VERSION = 1
+SAVE_DELAY = 600  # seconds between writes of the client-name cache
 
 MAC_LIKE = re.compile(r"^([0-9a-f]{2}[:-]?){5}[0-9a-f]{2}$", re.IGNORECASE)
 
@@ -228,6 +230,8 @@ class ClientNamer:
         self._store: Store = Store(hass, STORE_VERSION, f"{DOMAIN}.client_names")
         self._oui_path = hass.config.path(".storage", f"{DOMAIN}.manuf.gz")
         self._task: asyncio.Task | None = None
+        self._oui_task: asyncio.Task | None = None
+        self._saved: dict[str, Any] | None = None
         self._last_sweep = 0.0
 
     async def async_load(self) -> None:
@@ -237,34 +241,46 @@ class ClientNamer:
                     self.info[mac] = ClientInfo(**raw)
                 except TypeError:
                     continue
-        await self._load_oui()
-
-    async def _load_oui(self) -> None:
-        def read() -> tuple[str | None, float]:
-            try:
-                with gzip.open(self._oui_path, "rt", encoding="utf-8", errors="replace") as f:
-                    return f.read(), os.path.getmtime(self._oui_path)
-            except OSError:
-                return None, 0.0
-
-        text, mtime = await self.hass.async_add_executor_job(read)
-        if text is None or time.time() - mtime > OUI_MAX_AGE:
-            try:
-                session = async_get_clientsession(self.hass)
-                async with session.get(OUI_URL, timeout=aiohttp.ClientTimeout(total=60)) as resp:
-                    resp.raise_for_status()
-                    raw = await resp.read()
-
-                def write() -> str:
-                    with open(self._oui_path, "wb") as f:
-                        f.write(raw)
-                    return gzip.decompress(raw).decode("utf-8", "replace")
-
-                text = await self.hass.async_add_executor_job(write)
-            except (aiohttp.ClientError, TimeoutError, OSError) as err:
-                _LOGGER.info("Couldn't download the MAC vendor database (%s); using the cached copy if any", err)
+        self._saved = self.as_dict()
+        # Use the cached vendor database now; download a fresh one in the background so setup isn't held up.
+        text, mtime = await self.hass.async_add_executor_job(self._read_oui)
         if text:
             self._oui = await self.hass.async_add_executor_job(parse_manuf, text)
+        if text is None or time.time() - mtime > OUI_MAX_AGE:
+            self._oui_task = self.hass.async_create_background_task(self._download_oui(), f"{DOMAIN} vendor database")
+
+    def _read_oui(self) -> tuple[str | None, float]:
+        try:
+            with gzip.open(self._oui_path, "rt", encoding="utf-8", errors="replace") as f:
+                return f.read(), os.path.getmtime(self._oui_path)
+        except (OSError, EOFError, zlib.error):  # missing, or a truncated download
+            return None, 0.0
+
+    @callback
+    def async_cancel(self) -> None:
+        """Stop background work when the entry unloads."""
+        for task in (self._task, self._oui_task):
+            if task and not task.done():
+                task.cancel()
+
+    async def _download_oui(self) -> None:
+        try:
+            session = async_get_clientsession(self.hass)
+            async with session.get(OUI_URL, timeout=aiohttp.ClientTimeout(total=60)) as resp:
+                resp.raise_for_status()
+                raw = await resp.read()
+
+            def write() -> str:
+                text = gzip.decompress(raw).decode("utf-8", "replace")  # check it's complete before caching
+                with open(self._oui_path, "wb") as f:
+                    f.write(raw)
+                return text
+
+            text = await self.hass.async_add_executor_job(write)
+        except (aiohttp.ClientError, TimeoutError, OSError, EOFError, zlib.error) as err:
+            _LOGGER.info("Couldn't download the MAC vendor database (%s); using the cached copy if any", err)
+            return
+        self._oui = await self.hass.async_add_executor_job(parse_manuf, text)
 
     # ------------------------------------------------------------------ public API
     def schedule(self, clients: list[dict[str, Any]]) -> None:
@@ -359,7 +375,10 @@ class ClientNamer:
                 info.checked = now
 
         await asyncio.gather(*(one(c) for c in clients))
-        await self._store.async_save({"clients": self.as_dict()})
+        # Save at most every 10 minutes, and only when something changed (SD cards wear out).
+        if (current := self.as_dict()) != self._saved:
+            self._saved = current
+            self._store.async_delay_save(lambda: {"clients": self.as_dict()}, SAVE_DELAY)
         if self._on_update:
             self._on_update()
 

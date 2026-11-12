@@ -10,7 +10,8 @@ Please **don't open a public issue** for security problems. Use GitHub's
 - The Instant On email and password are stored in Home Assistant's config entry storage (`.storage/core.config_entries`),
   which is **not encrypted**. Anyone with access to your Home Assistant config directory or backups can read them.
 - Bearer tokens are kept in memory only.
-- Diagnostics redact credentials, MAC and IP addresses, hostnames, names and serial numbers.
+- Diagnostics redact credentials, MAC and IP addresses, hostnames, names, SSIDs, addresses and serial numbers.
+- Every signed-in Home Assistant user, including non-admins, can open the **Network** panel and see client names, MAC and IP addresses.
 - The integration only makes `GET` requests to the REST API.
 
 ## Recommendations
